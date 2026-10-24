@@ -8,6 +8,9 @@ The Slippi Launcher acts as a one stop shop for everything Slippi related. It ha
 
 This repository is part of the Project Slippi ecosystem. For more information about all of the Project Slippi projects, visit https://github.com/project-slippi/project-slippi.
 
+This fork also includes a [Sats Arena server setup preview](docs/sats-arena.md)
+under **Settings → Sats Arena**, with Connect and local Host controls.
+
 ## Build Instructions
 
 ### Prerequisites

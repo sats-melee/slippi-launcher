@@ -7,6 +7,7 @@ import settingsApi from "@settings/api";
 import { contextBridge, ipcRenderer, shell, webUtils } from "electron";
 import { pathExists } from "fs-extra";
 import path from "path";
+import satsArenaApi from "sats_arena/api";
 import { isSubdirectory } from "utils/is_subdirectory";
 
 import commonApi from "./api";
@@ -24,6 +25,7 @@ const api = {
   dolphin: dolphinApi,
   replays: replaysApi,
   remote: spectateRemoteApi,
+  satsArena: satsArenaApi,
   contentManagement: contentManagementApi,
   utils: {
     isSubdirectory,

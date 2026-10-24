@@ -2,6 +2,7 @@ import type { ConsoleService } from "@console/types";
 import type { SpectateRemoteService } from "@remote/types";
 import type { Progress, ReplayService } from "@replays/types";
 import throttle from "lodash/throttle";
+import type { SatsArenaService } from "sats_arena/types";
 
 import { getReplayPresenter } from "@/lib/hooks/use_replays";
 import { refreshChatMessages, useChatMessagesStore } from "@/pages/settings/chat_settings/use_chat_messages";
@@ -10,6 +11,7 @@ import type { AuthService } from "@/services/auth/types";
 import { clearUserData, refreshUserData, useAccount } from "../lib/hooks/use_account";
 import { useAppStore } from "../lib/hooks/use_app_store";
 import { useConsoleDiscoveryStore } from "../lib/hooks/use_console_discovery";
+import { useSatsArenaServerStore } from "../lib/hooks/use_sats_arena_server";
 import { useSpectateRemoteServerStateStore } from "../lib/hooks/use_spectate_remote_server";
 import type { NotificationService } from "../services/notification/types";
 import type { Services } from "../services/types";
@@ -27,6 +29,7 @@ export function installAppListeners(services: Services) {
     dolphinService,
     spectateRemoteService,
     replayService,
+    satsArenaService,
   } = services;
 
   authService.onUserChange((user) => {
@@ -86,6 +89,7 @@ export function installAppListeners(services: Services) {
   installReplayListeners({ replayService, authService });
   installSettingsChangeListeners({ replayService, authService });
   installSpectateListeners({ spectateRemoteService });
+  installSatsArenaListeners({ satsArenaService });
 }
 
 function installConsoleListeners(services: {
@@ -112,6 +116,12 @@ function installSpectateListeners({ spectateRemoteService }: { spectateRemoteSer
   spectateRemoteService.onSpectateRemoteServerStateChange((state) =>
     useSpectateRemoteServerStateStore.getState().setState(state),
   );
+}
+
+function installSatsArenaListeners({ satsArenaService }: { satsArenaService: SatsArenaService }) {
+  const { setStatus } = useSatsArenaServerStore.getState();
+  satsArenaService.onServerStatusChange(setStatus);
+  void satsArenaService.getServerStatus().then(setStatus);
 }
 
 export function installReplayListeners({

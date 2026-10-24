@@ -68,7 +68,23 @@ export interface SettingsSchema {
 
   // Appearance settings
   enableRankDisplay: boolean;
+
+  // Sats Arena settings. The NWC connection string is a secret and is stored
+  // separately (see src/sats_arena/nwc_secret_store.ts), never in this file.
+  satsArenaMode: SatsArenaMode;
+  satsArenaServerUrl: string;
+  satsArenaServerBinaryPath: string | null;
+  satsArenaHostPort: number;
+  satsArenaHostAllowRemote: boolean;
+  satsArenaInviteCode: string;
+  satsArenaWalletBackend: SatsArenaWalletBackend;
+  satsArenaSatsPerPercent: number;
+  satsArenaWinSats: number;
+  satsArenaMaxDepositSats: number;
 }
+
+export type SatsArenaMode = "off" | "connect" | "host";
+export type SatsArenaWalletBackend = "fake" | "nwc";
 
 /**
  * Root-level app settings that aren't nested under "settings"

@@ -6,6 +6,7 @@ import setupRemoteIpc from "@remote/setup";
 import setupReplaysIpc from "@replays/setup";
 import { SettingsManager } from "@settings/settings_manager";
 import setupSettingsIpc from "@settings/setup";
+import setupSatsArenaIpc from "sats_arena/setup";
 
 import { AppUpdater } from "./app_updater";
 import { BrowserWindowManager } from "./browser_window_manager";
@@ -22,6 +23,7 @@ export function installModules(flags: ConfigFlags) {
   setupSettingsIpc({ settingsManager, dolphinManager });
   setupConsoleIpc({ dolphinManager });
   setupRemoteIpc({ dolphinManager, settingsManager, getSpectateController });
+  setupSatsArenaIpc({ settingsManager });
   const browserWindowManager = new BrowserWindowManager();
   setupMainIpc({ dolphinManager, settingsManager, flags, browserWindowManager, appUpdater });
   return { dolphinManager, settingsManager, browserWindowManager, appUpdater };

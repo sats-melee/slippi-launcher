@@ -8,6 +8,7 @@ import { GameSettings } from "./game_settings/game_settings";
 import { HelpPage } from "./help_page/help_page";
 import { ReplaySettings } from "./replay_settings/replay_settings";
 import { RulesAndPoliciesPage } from "./rules_and_policies_page/rules_and_policies_page";
+import { SatsArenaSettings } from "./sats_arena_settings/sats_arena_settings";
 import { SettingsPage } from "./settings_page";
 import { SpectateSettings } from "./spectate_settings/spectate_settings";
 import type { SettingSection } from "./types";
@@ -36,6 +37,11 @@ export function createSettingsPage(): { Page: React.ComponentType } {
           name: () => Messages.spectate(),
           path: "spectate-options",
           component: <SpectateSettings />,
+        },
+        {
+          name: () => Messages.satsArena(),
+          path: "sats-arena",
+          component: <SatsArenaSettings />,
         },
       ],
     },
