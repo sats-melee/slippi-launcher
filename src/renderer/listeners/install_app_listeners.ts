@@ -5,63 +5,29 @@ import throttle from "lodash/throttle";
 import type { SatsArenaService } from "sats_arena/types";
 
 import { getReplayPresenter } from "@/lib/hooks/use_replays";
-import { refreshChatMessages, useChatMessagesStore } from "@/pages/settings/chat_settings/use_chat_messages";
 import type { AuthService } from "@/services/auth/types";
 
-import { clearUserData, refreshUserData, useAccount } from "../lib/hooks/use_account";
 import { useAppStore } from "../lib/hooks/use_app_store";
 import { useConsoleDiscoveryStore } from "../lib/hooks/use_console_discovery";
 import { useSatsArenaServerStore } from "../lib/hooks/use_sats_arena_server";
 import { useSpectateRemoteServerStateStore } from "../lib/hooks/use_spectate_remote_server";
 import type { NotificationService } from "../services/notification/types";
 import type { Services } from "../services/types";
-import { installBroadcastListeners } from "./install_broadcast_listeners";
 import { installDolphinListeners } from "./install_dolphin_listeners";
 import { installSettingsChangeListeners } from "./install_settings_change_listeners";
 
 export function installAppListeners(services: Services) {
   const {
     authService,
-    broadcastService,
     consoleService,
     notificationService,
-    slippiBackendService,
     dolphinService,
     spectateRemoteService,
     replayService,
     satsArenaService,
   } = services;
 
-  authService.onUserChange((user) => {
-    const oldUserId = useAccount.getState().user?.uid;
-    useAccount.getState().setUser(user);
-
-    // Refresh the play key and chat messages
-    if (user) {
-      void refreshUserData(slippiBackendService);
-      void refreshChatMessages(slippiBackendService, user.uid);
-    } else {
-      // We've logged out so clear any pending requests for user data.
-      clearUserData();
-      useChatMessagesStore.getState().resetStore();
-    }
-
-    // If we switched users, stop broadcasting and disconnect from the spectate server.
-    const didSwitchUser = oldUserId != null && user != null && user.uid !== oldUserId;
-    if (didSwitchUser) {
-      // technically we don't need to stop broadcasting cause we don't allow
-      // switching accounts when netplay is open. better to be safe
-      void broadcastService.stopBroadcast();
-      void broadcastService.disconnectFromSpectateServer();
-    }
-  });
-
-  // Subscribe to multi-account changes
-  const multiAccountService = authService.getMultiAccountService();
-  multiAccountService.onAccountsChange(({ accounts, activeId }) => {
-    useAccount.getState().setAccounts(accounts);
-    useAccount.getState().setActiveAccountId(activeId);
-  });
+  // No Slippi account/session subscriptions in the Arena launcher.
 
   window.electron.common.onAppUpdateReady(() => {
     useAppStore.getState().setUpdateReady(true);
@@ -84,10 +50,8 @@ export function installAppListeners(services: Services) {
   });
 
   installDolphinListeners({ dolphinService, notificationService });
-  installBroadcastListeners({ broadcastService, authService });
   installConsoleListeners({ consoleService, notificationService });
-  installReplayListeners({ replayService, authService });
-  installSettingsChangeListeners({ replayService, authService });
+  installSettingsChangeListeners({ replayService, authService, replayBrowserEnabled: false });
   installSpectateListeners({ spectateRemoteService });
   installSatsArenaListeners({ satsArenaService });
 }

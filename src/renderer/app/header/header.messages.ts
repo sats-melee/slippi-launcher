@@ -1,4 +1,5 @@
 export const HeaderMessages = {
+  arenaTitle: () => "Sats Arena",
   logIn: () => "Log in",
   checkForUpdates: () => "Check for updates",
   checkingForUpdates: () => "Checking for updates...",

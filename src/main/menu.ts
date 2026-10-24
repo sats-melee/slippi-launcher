@@ -1,6 +1,6 @@
 /* eslint-disable import/no-default-export */
 import type { BrowserWindow, MenuItemConstructorOptions } from "electron";
-import { app, dialog, Menu, shell } from "electron";
+import { app, Menu, shell } from "electron";
 
 import type { BrowserWindowManager } from "./browser_window_manager";
 
@@ -13,7 +13,6 @@ export class MenuBuilder {
   private mainWindow: BrowserWindow;
   private browserWindowManager: BrowserWindowManager;
   private onOpenPreferences: () => void;
-  private onOpenReplayFile: (filePath: string) => void;
   private onOpenAppSupportFolder: () => void;
   private createWindow: () => Promise<void>;
   private enableDevTools?: boolean;
@@ -31,7 +30,6 @@ export class MenuBuilder {
     this.browserWindowManager = options.browserWindowManager;
     this.enableDevTools = options.enableDevTools;
     this.onOpenPreferences = options.onOpenPreferences;
-    this.onOpenReplayFile = options.onOpenReplayFile;
     this.onOpenAppSupportFolder = options.onOpenAppSupportFolder;
     this.createWindow = options.createWindow;
   }
@@ -66,10 +64,10 @@ export class MenuBuilder {
 
   private buildDarwinTemplate(): MenuItemConstructorOptions[] {
     const subMenuAbout: DarwinMenuItemConstructorOptions = {
-      label: "Slippi Launcher",
+      label: "Sats Arena",
       submenu: [
         {
-          label: "About Slippi Launcher",
+          label: "About Sats Arena",
           selector: "orderFrontStandardAboutPanel:",
         },
         { type: "separator" },
@@ -92,7 +90,7 @@ export class MenuBuilder {
         { label: "Services", submenu: [] },
         { type: "separator" },
         {
-          label: "Hide Slippi Launcher",
+          label: "Hide Sats Arena",
           accelerator: "Command+H",
           selector: "hide:",
         },
@@ -116,14 +114,10 @@ export class MenuBuilder {
       label: "File",
       submenu: [
         {
-          label: "Open Replay",
-          accelerator: "Command+O",
+          label: "Settings",
+          accelerator: "Command+,",
           click: () => {
-            void dialog.showOpenDialog({ properties: ["openFile"] }).then((response) => {
-              if (!response.canceled) {
-                this.onOpenReplayFile(response.filePaths[0]);
-              }
-            });
+            this.onOpenPreferences();
           },
         },
       ],
@@ -198,7 +192,7 @@ export class MenuBuilder {
         },
         {
           id: "macos-window-toggle",
-          label: "Slippi Launcher",
+          label: "Sats Arena",
           accelerator: "Cmd+0",
           visible: false,
           enabled: false,
@@ -214,9 +208,9 @@ export class MenuBuilder {
       label: "Help",
       submenu: [
         {
-          label: "Open Slippi Discord Server",
+          label: "Sats Arena Documentation",
           click() {
-            void shell.openExternal("https://slippi.gg/discord");
+            void shell.openExternal("https://github.com/landaverdend/sats-arena");
           },
         },
       ],
@@ -231,14 +225,10 @@ export class MenuBuilder {
         label: "&File",
         submenu: [
           {
-            label: "&Open",
-            accelerator: "Ctrl+O",
+            label: "&Settings",
+            accelerator: "Ctrl+,",
             click: () => {
-              void dialog.showOpenDialog({ properties: ["openFile"] }).then((response) => {
-                if (!response.canceled) {
-                  this.onOpenReplayFile(response.filePaths[0]);
-                }
-              });
+              this.onOpenPreferences();
             },
           },
           {
@@ -304,9 +294,9 @@ export class MenuBuilder {
         label: "Help",
         submenu: [
           {
-            label: "Open Slippi Discord Server",
+            label: "Sats Arena Documentation",
             click() {
-              void shell.openExternal("https://slippi.gg/discord");
+              void shell.openExternal("https://github.com/landaverdend/sats-arena");
             },
           },
         ],

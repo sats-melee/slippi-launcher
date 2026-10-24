@@ -1,16 +1,10 @@
 import { AdvancedAppSettings } from "./advanced_app_settings/advanced_app_settings";
 import { AppearanceSettings } from "./appearance_settings/appearance_settings";
-import { ChatSettings } from "./chat_settings/chat_settings";
 import { SettingsCreateMessages as Messages } from "./create.messages";
 import { NetplayDolphinSettings } from "./dolphin_settings/netplay_dolphin_settings";
-import { PlaybackDolphinSettings } from "./dolphin_settings/playback_dolphin_settings";
 import { GameSettings } from "./game_settings/game_settings";
-import { HelpPage } from "./help_page/help_page";
-import { ReplaySettings } from "./replay_settings/replay_settings";
-import { RulesAndPoliciesPage } from "./rules_and_policies_page/rules_and_policies_page";
 import { SatsArenaSettings } from "./sats_arena_settings/sats_arena_settings";
 import { SettingsPage } from "./settings_page";
-import { SpectateSettings } from "./spectate_settings/spectate_settings";
 import type { SettingSection } from "./types";
 
 export function createSettingsPage(): { Page: React.ComponentType } {
@@ -24,21 +18,6 @@ export function createSettingsPage(): { Page: React.ComponentType } {
           component: <GameSettings />,
         },
         {
-          name: () => Messages.replays(),
-          path: "replay-options",
-          component: <ReplaySettings />,
-        },
-        {
-          name: () => Messages.chat(),
-          path: "chat-options",
-          component: <ChatSettings />,
-        },
-        {
-          name: () => Messages.spectate(),
-          path: "spectate-options",
-          component: <SpectateSettings />,
-        },
-        {
           name: () => Messages.satsArena(),
           path: "sats-arena",
           component: <SatsArenaSettings />,
@@ -49,14 +28,9 @@ export function createSettingsPage(): { Page: React.ComponentType } {
       title: () => Messages.dolphinSettings(),
       items: [
         {
-          name: () => Messages.netplay(),
+          name: () => Messages.dolphin(),
           path: "netplay-dolphin-settings",
           component: <NetplayDolphinSettings />,
-        },
-        {
-          name: () => Messages.playback(),
-          path: "playback-dolphin-settings",
-          component: <PlaybackDolphinSettings />,
         },
       ],
     },
@@ -72,20 +46,6 @@ export function createSettingsPage(): { Page: React.ComponentType } {
           name: () => Messages.advanced(),
           path: "advanced-settings",
           component: <AdvancedAppSettings />,
-        },
-      ],
-    },
-    {
-      items: [
-        {
-          name: () => Messages.help(),
-          path: "help",
-          component: <HelpPage />,
-        },
-        {
-          name: () => Messages.rulesAndPolicies(),
-          path: "rules",
-          component: <RulesAndPoliciesPage />,
         },
       ],
     },

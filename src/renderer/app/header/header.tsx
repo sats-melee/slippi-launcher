@@ -2,93 +2,48 @@ import { css } from "@emotion/react";
 import styled from "@emotion/styled";
 import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import log from "electron-log";
-import debounce from "lodash/debounce";
-import React, { useCallback, useMemo } from "react";
+import Typography from "@mui/material/Typography";
+import { useCallback, useMemo } from "react";
 
 import { useDolphinActions } from "@/lib/dolphin/use_dolphin_actions";
 import { DolphinStatus, useDolphinStore } from "@/lib/dolphin/use_dolphin_store";
-import { useAccount } from "@/lib/hooks/use_account";
-import { useAppStore } from "@/lib/hooks/use_app_store";
-import { useAppUpdate } from "@/lib/hooks/use_app_update";
-import { useLoginModal } from "@/lib/hooks/use_login_modal";
 import { useSettings } from "@/lib/hooks/use_settings";
 import { useSettingsModal } from "@/lib/hooks/use_settings_modal";
 import { useToasts } from "@/lib/hooks/use_toasts";
 import { useServices } from "@/services";
-import slippiLogo from "@/styles/images/slippi_logo.svg";
 import { platformTitleBarStyles } from "@/styles/platform_title_bar_styles";
 
-import { ActivateOnlineDialog } from "./activate_online_dialog";
 import { HeaderMessages as Messages } from "./header.messages";
 import type { MenuItem } from "./main_menu";
 import { MainMenu } from "./main_menu";
 import { PlayButton as PlayButtonImpl, UpdatingButton } from "./play_button/play_button";
-import { StartGameOfflineDialog } from "./start_game_offline_dialog";
-import { UserMenu } from "./user_menu/user_menu";
-
-const isMac = window.electron.bootstrap.isMac;
 
 const OuterBox = styled(Box)`
-  background: radial-gradient(circle at left, #5c1394, transparent 30%);
-  background-color: var(--purple);
+  background: linear-gradient(110deg, var(--arena-surface), var(--arena-background));
+  border-bottom: 1px solid var(--arena-border);
   height: 70px;
 `;
 
 export const Header = ({ menuItems }: { menuItems: readonly MenuItem[] }) => {
-  const { dolphinService, slippiBackendService } = useServices();
-  const [startGameModalOpen, setStartGameModalOpen] = React.useState(false);
-  const [activateOnlineModal, setActivateOnlineModal] = React.useState(false);
-  const openModal = useLoginModal((store) => store.openModal);
+  const { dolphinService } = useServices();
   const { open } = useSettingsModal();
-  const currentUser = useAccount((store) => store.user);
-  const userData = useAccount((store) => store.userData);
-  const serverError = useAccount((store) => store.serverError);
   const meleeIsoPath = useSettings((store) => store.settings.isoPath) || undefined;
   const { showError } = useToasts();
   const { launchNetplay } = useDolphinActions(dolphinService);
-  const isOnline = useAppStore((state) => state.isOnline);
 
-  const onPlay = useCallback(
-    async (offlineOnly?: boolean) => {
-      if (!offlineOnly) {
-        // Ensure user is logged in
-        if (!currentUser || !isOnline) {
-          setStartGameModalOpen(true);
-          return;
-        }
-
-        // Ensure user has a valid play key
-        if (!userData?.playKey && !serverError) {
-          setActivateOnlineModal(true);
-          return;
-        }
-
-        if (userData?.playKey) {
-          // Ensure the play key is saved to disk
-          try {
-            await slippiBackendService.assertPlayKey(userData.playKey);
-          } catch (err) {
-            showError(err);
-            return;
-          }
-        }
-      }
-
-      if (!meleeIsoPath) {
-        showError(Messages.noMeleeIsoFile());
-        return;
-      }
-
-      launchNetplay(offlineOnly ?? false);
-
+  const onPlay = useCallback(() => {
+    if (!meleeIsoPath) {
+      showError(Messages.noMeleeIsoFile());
+      open("/settings/melee-options");
       return;
-    },
-    [currentUser, isOnline, launchNetplay, meleeIsoPath, userData, serverError, showError, slippiBackendService],
-  );
+    }
+
+    // Launch the game normally, without a launcher account gate. Dolphin
+    // still enforces authentication if a player uses Slippi's online service.
+    launchNetplay(false);
+  }, [launchNetplay, meleeIsoPath, open, showError]);
 
   return (
     <OuterBox
@@ -102,10 +57,19 @@ export const Header = ({ menuItems }: { menuItems: readonly MenuItem[] }) => {
         css={css`
           display: flex;
           align-items: center;
-          padding-left: 5px;
+          padding-left: 20px;
         `}
       >
-        <CheckForUpdatesButton />
+        <Typography
+          variant="h6"
+          css={css`
+            color: var(--arena-accent);
+            font-weight: 700;
+            white-space: nowrap;
+          `}
+        >
+          {Messages.arenaTitle()}
+        </Typography>
         <div
           css={css`
             margin: 0 10px;
@@ -116,13 +80,6 @@ export const Header = ({ menuItems }: { menuItems: readonly MenuItem[] }) => {
         <MainMenu menuItems={menuItems} />
       </div>
       <Box display="flex" alignItems="center">
-        {currentUser ? (
-          <UserMenu user={currentUser} handleError={showError} />
-        ) : (
-          <Button onClick={openModal} sx={{ color: "var(--off-white)" }}>
-            {Messages.logIn()}
-          </Button>
-        )}
         <Tooltip title={Messages.settings()}>
           <IconButton
             onClick={() => open()}
@@ -131,21 +88,12 @@ export const Header = ({ menuItems }: { menuItems: readonly MenuItem[] }) => {
               margin-right: 10px;
             `}
             size="large"
+            aria-label={Messages.settings()}
           >
             <SettingsOutlinedIcon />
           </IconButton>
         </Tooltip>
       </Box>
-      <StartGameOfflineDialog
-        open={startGameModalOpen}
-        onCancel={() => setStartGameModalOpen(false)}
-        onPlayOffline={() => onPlay(true)}
-      />
-      <ActivateOnlineDialog
-        open={activateOnlineModal}
-        onClose={() => setActivateOnlineModal(false)}
-        onSubmit={() => onPlay()}
-      />
     </OuterBox>
   );
 };
@@ -168,43 +116,4 @@ const PlayButton = ({ onClick }: { onClick: () => void }) => {
   }
 
   return <UpdatingButton onClick={onClick} fillPercent={fillPercent} />;
-};
-
-const CheckForUpdatesButton = () => {
-  const { dolphinService } = useServices();
-  const { updateDolphin } = useDolphinActions(dolphinService);
-  const { checkForAppUpdates } = useAppUpdate();
-  const { showInfo, showError } = useToasts();
-  const [checkingForUpdates, setCheckingForUpdates] = React.useState(false);
-
-  const checkForUpdatesHandler = useMemo(() => {
-    const checkForUpdates = async () => {
-      setCheckingForUpdates(true);
-      try {
-        const updateResult = await checkForAppUpdates();
-        if (updateResult && !updateResult.updateAvailable) {
-          showInfo(Messages.noUpdateAvailable());
-        }
-        await updateDolphin();
-      } catch (err) {
-        log.error(err);
-        showError(Messages.failedToGetUpdates());
-      } finally {
-        setCheckingForUpdates(false);
-      }
-    };
-    return debounce(checkForUpdates, 500);
-  }, [checkForAppUpdates, updateDolphin, showInfo, showError]);
-
-  return (
-    <Tooltip title={checkingForUpdates ? Messages.checkingForUpdates() : Messages.checkForUpdates()}>
-      <Button
-        style={isMac ? { marginTop: 10 } : undefined}
-        onClick={checkForUpdatesHandler}
-        disabled={checkingForUpdates}
-      >
-        <img src={slippiLogo} width="38px" />
-      </Button>
-    </Tooltip>
-  );
 };

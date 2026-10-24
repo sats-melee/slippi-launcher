@@ -11,14 +11,19 @@ import type { AuthService } from "@/services/auth/types";
 export function installSettingsChangeListeners({
   replayService,
   authService,
+  replayBrowserEnabled = true,
 }: {
   replayService: ReplayService;
   authService: AuthService;
+  replayBrowserEnabled?: boolean;
 }) {
   const replayPresenter = getReplayPresenter(replayService, authService);
 
   // Re-initialize the replay browser whenever the tracked SLP paths change
   const initReplayBrowser = (preserveCurrentFolder = false) => {
+    if (!replayBrowserEnabled) {
+      return;
+    }
     const { rootSlpPath, extraSlpPaths } = useSettingsStore.getState().settings;
     // When preserving the current folder, pass it to init so it doesn't reset to root
     const currentFolder = preserveCurrentFolder ? useReplays.getState().currentFolder : undefined;

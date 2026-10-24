@@ -6,6 +6,7 @@ export const SettingsCreateMessages = {
   spectate: () => "Spectate",
   satsArena: () => "Sats Arena",
   dolphinSettings: () => "Dolphin Settings",
+  dolphin: () => "Dolphin",
   netplay: () => "Netplay",
   playback: () => "Playback",
   appSettings: () => "App Settings",

@@ -1,53 +1,23 @@
 import { DolphinLaunchType } from "@dolphin/types";
 import log from "electron-log";
 
-import { generateQuickStartSteps } from "@/pages/quick_start/use_quick_start";
-import type { AuthUser } from "@/services/auth/types";
 import type { Services } from "@/services/types";
 
 import { InitializeAppMessages as Messages } from "./initialize_app.messages";
-import type { UserData } from "./services/slippi/types";
 
 export async function initializeApp(services: Services) {
-  const { authService, slippiBackendService, dolphinService, notificationService } = services;
+  const { dolphinService, notificationService } = services;
   const { showError } = notificationService;
 
   log.info("Initializing app...");
 
   const promises: Promise<any>[] = [];
 
-  // If we're logged in, check they have a valid play key
-  promises.push(
-    (async () => {
-      let user: AuthUser | undefined = undefined;
-      try {
-        user = await authService.init();
-        // useAccount.getState().setUser(user);
-      } catch (err) {
-        log.warn(err);
-      }
+  // Arena doesn't restore Slippi accounts, fetch their data, or run their
+  // sign-in/policy wizard. Keep existing Dolphin play keys untouched.
 
-      let userData: UserData | undefined = undefined;
-      let serverError = false;
-      if (user) {
-        try {
-          userData = await slippiBackendService.fetchUserData();
-          serverError = false;
-        } catch (err) {
-          serverError = true;
-          const reason = !navigator.onLine ? Messages.youAreOffline() : Messages.slippiMayBeDown();
-          const message = `${Messages.failedToCommunicateWithSlippiServers()} ${reason}`;
-          showError(message);
-        }
-      }
-
-      // Generate the quick start steps based on the current state
-      generateQuickStartSteps({ user, userData, serverError });
-    })(),
-  );
-
-  // Download Dolphins if necessary
-  [DolphinLaunchType.NETPLAY, DolphinLaunchType.PLAYBACK].map((dolphinType) => {
+  // Playback is hidden, so don't install an unused second emulator on startup.
+  [DolphinLaunchType.NETPLAY].forEach((dolphinType) => {
     void dolphinService.downloadDolphin(dolphinType).catch((err) => {
       log.error(err);
       const dolphinTypeName =

@@ -1,18 +1,25 @@
 :root {
-  --green-primary: #72d07f;
-  --purple-primary: #b984bb;
+  --arena-accent: #f7931a;
+  --arena-accent-light: #ffb45b;
+  --arena-background: #16120f;
+  --arena-surface: #251b14;
+  --arena-border: rgb(247 147 26 / 24%);
+
+  /* Compatibility aliases for existing components in the fork. */
+  --green-primary: var(--arena-accent);
+  --purple-primary: var(--arena-accent-light);
   --red-error: rgb(203 15 5);
 
   /* Home / launch page */
   --gray-dark: #222;
-  --green-bright: #39d05d;
-  --green-dark: #21BA45;
-  --green-darker: #208E2C;
-  --purple-lighter: #9f74c0;
-  --purple-light: #8665A0;
-  --purple: #310057;
-  --purple-dark: #29133B;
-  --purple-darker: #1B0B28;
+  --green-bright: #ffc078;
+  --green-dark: #d7770d;
+  --green-darker: #a75209;
+  --purple-lighter: #ffc078;
+  --purple-light: #c4956d;
+  --purple: #302116;
+  --purple-dark: var(--arena-surface);
+  --purple-darker: var(--arena-background);
   --off-gray: #2D313A;
   --off-white: #E0E0E0;
 

@@ -4,18 +4,13 @@ import { createTheme } from "@mui/material/styles";
 // This is a limitation of MUI theme in that we can't import css variables
 // so we'll just hard code these for now.
 const colors = {
-  greenPrimary: "#72d07f",
-  purplePrimary: "#b984bb",
+  orangePrimary: "#f7931a",
+  orangeLight: "#ffb45b",
 
   // These are used on the home/launch page
   grayDark: "#222222",
-  greenDark: "#21BA45",
-  greenDarker: "#208E2C",
-  purpleLighter: "#9f74c0",
-  purpleLight: "#8665A0",
-  purple: "#310057",
-  purpleDark: "#29133B",
-  purpleDarker: "#1B0B28",
+  surface: "#251b14",
+  background: "#16120f",
   offGray: "#2D313A",
   offWhite: "#E0E0E0",
 
@@ -39,15 +34,17 @@ const theme = createTheme({
       secondary: "#B4B4B4",
     },
     primary: {
-      main: colors.greenPrimary,
+      main: colors.orangePrimary,
+      contrastText: colors.background,
     },
     secondary: {
-      main: colors.purplePrimary,
+      main: colors.orangeLight,
+      contrastText: colors.background,
     },
     divider: "rgba(255,255,255)",
     background: {
-      paper: colors.purpleDarker,
-      default: colors.purple,
+      paper: colors.surface,
+      default: colors.background,
     },
   },
   typography: {
@@ -91,7 +88,7 @@ const addOverrides = (theme: Theme) => {
           },
           tooltip: {
             backgroundColor: colors.offWhite,
-            color: colors.purpleDarker,
+            color: colors.background,
             boxShadow: theme.shadows[1],
             fontSize: 13,
           },
@@ -150,10 +147,10 @@ const addOverrides = (theme: Theme) => {
         styleOverrides: {
           root: {
             "&.Mui-selected": {
-              backgroundColor: "rgba(255, 255, 255, 0.16)",
+              backgroundColor: "rgba(247, 147, 26, 0.16)",
             },
             "&.Mui-selected:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.16)",
+              backgroundColor: "rgba(247, 147, 26, 0.24)",
             },
           },
         },
@@ -162,10 +159,10 @@ const addOverrides = (theme: Theme) => {
         styleOverrides: {
           root: {
             "&.Mui-selected": {
-              backgroundColor: "rgba(255, 255, 255, 0.16)",
+              backgroundColor: "rgba(247, 147, 26, 0.16)",
             },
             "&.Mui-selected:hover": {
-              backgroundColor: "rgba(255, 255, 255, 0.16)",
+              backgroundColor: "rgba(247, 147, 26, 0.24)",
             },
           },
         },

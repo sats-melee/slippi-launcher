@@ -2,6 +2,14 @@
 
 Open **Settings → Sats Arena** in the launcher.
 
+The launcher now opens directly on the Arena screen, which also includes the
+server controls. It does not restore Slippi launcher accounts or require login,
+email verification, policy acceptance, or online activation. Replay, news,
+tournament, spectate, and console pages are not in the active navigation;
+their implementation is retained for possible later use. Old links redirect
+to Arena rather than opening these screens. Existing Dolphin play keys are
+left alone; Slippi's own online servers still require their usual credentials.
+
 - **Off:** don't use an arena server. Leaving Host mode stops the child process.
 - **Connect to a server:** save the URL of an independently hosted server and
   use **Test connection** to check its `/health` endpoint. This doesn't log in,
