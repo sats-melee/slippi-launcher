@@ -9,6 +9,7 @@ import { NwcSettings } from "@/pages/settings/sats_arena_settings/sats_arena_set
 import logo from "@/styles/images/sats-melee-logo.png";
 
 import { ArenaPageMessages as Messages } from "./arena_page.messages";
+import { LocalMatchSettings } from "./local_match_settings";
 
 export const ArenaPage = React.memo(() => {
   const [isoPath] = useSetting("isoPath");
@@ -32,7 +33,8 @@ export const ArenaPage = React.memo(() => {
           clip-path: polygon(0 0, 26% 0, 52% 100%, 0 100%);
           pointer-events: none;
         }
-        @media (max-height: 550px) {
+        @media (max-height: 650px) {
+          align-items: flex-start;
           padding-top: 24px;
           padding-bottom: 24px;
         }
@@ -94,6 +96,7 @@ export const ArenaPage = React.memo(() => {
           ) : (
             <NwcSettings compact={true} />
           )}
+          <LocalMatchSettings />
           {!isoPath && (
             <Button variant="outlined" sx={{ marginTop: 3 }} onClick={() => open("/settings/melee-options")}>
               {Messages.chooseIso()}

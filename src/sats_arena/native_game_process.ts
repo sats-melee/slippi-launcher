@@ -8,6 +8,7 @@ import { access, constants, mkdir, stat } from "fs/promises";
 import path from "path";
 
 import { prepareLocalGameProfile } from "./local_game_profile";
+import { localRulesError } from "./local_rules";
 import type { NwcSecretStore } from "./nwc_secret_store";
 import { isValidNwcUri } from "./nwc_secret_store";
 import type { SandboxWallets } from "./sandbox";
@@ -18,7 +19,7 @@ type WalletPayload = {
   nwc_uri?: string;
   sandbox_players?: { nwc_uri: string; address: string }[];
 };
-type NativeSettings = Pick<SettingsSchema, "satsArenaWalletBackend" | "satsArenaSatsPerPercent">;
+type NativeSettings = Pick<SettingsSchema, "satsArenaWalletBackend" | "satsArenaEntrySats" | "satsArenaSatsPerPercent">;
 
 /** Only the main process calls this; the resulting secret is never returned over IPC. */
 export async function nativeWalletLaunch(
@@ -71,9 +72,17 @@ export async function nativeWalletLaunch(
   if (!uriOverride) {
     delete env.SATS_ARENA_NWC_URI;
   }
-  if (env.SATS_ARENA_SATS_PER_PERCENT === undefined) {
-    env.SATS_ARENA_SATS_PER_PERCENT = String(settings.satsArenaSatsPerPercent);
+  const entry = env.SATS_ARENA_ENTRY_SATS ?? String(settings.satsArenaEntrySats);
+  const rate = env.SATS_ARENA_SATS_PER_PERCENT ?? String(settings.satsArenaSatsPerPercent);
+  if (!/^\d+$/.test(entry) || !/^\d+$/.test(rate)) {
+    throw new Error("Local match amounts must be whole numbers of sats.");
   }
+  const rulesError = localRulesError(Number(entry), Number(rate));
+  if (rulesError) {
+    throw new Error(rulesError);
+  }
+  env.SATS_ARENA_ENTRY_SATS = entry;
+  env.SATS_ARENA_SATS_PER_PERCENT = rate;
   return { payload, env };
 }
 

@@ -47,6 +47,7 @@ export const defaultAppSettings: AppSettings = {
     satsArenaHostAllowRemote: false,
     satsArenaInviteCode: "",
     satsArenaWalletBackend: "nwc",
+    satsArenaEntrySats: 400,
     satsArenaSatsPerPercent: 1,
     satsArenaWinSats: 100,
     satsArenaMaxDepositSats: 100000,

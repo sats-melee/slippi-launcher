@@ -30,7 +30,11 @@ describe("native wallet configuration", () => {
         })),
       })),
     };
-    const settings = { satsArenaWalletBackend: "sandbox" as const, satsArenaSatsPerPercent: 1 };
+    const settings = {
+      satsArenaWalletBackend: "sandbox" as const,
+      satsArenaEntrySats: 400,
+      satsArenaSatsPerPercent: 1,
+    };
     const launch = await nativeWalletLaunch(settings, secrets, {}, sandbox);
     expect(launch.payload.backend).toBe("sandbox");
     expect(launch.payload.sandbox_players).toHaveLength(4);
@@ -44,7 +48,7 @@ describe("native wallet configuration", () => {
     await expect(nativeWalletLaunch(settings, secrets, {}, sandbox)).rejects.toThrow("sandbox offline");
     expect(secrets.get).not.toHaveBeenCalled();
   });
-  const settings = { satsArenaWalletBackend: "nwc", satsArenaSatsPerPercent: 1 } as const;
+  const settings = { satsArenaWalletBackend: "nwc", satsArenaEntrySats: 400, satsArenaSatsPerPercent: 1 } as const;
   it("reads the saved NWC in main and keeps it out of the production environment", async () => {
     const secrets = { get: vi.fn(async () => uri) };
     const launch = await nativeWalletLaunch(settings, secrets, { PATH: "/test", SATS_ARENA_FAKE_LOCAL: "0" });
@@ -53,6 +57,7 @@ describe("native wallet configuration", () => {
     expect(launch.env.SATS_ARENA_NWC_URI).toBeUndefined();
     expect(launch.env.SATS_ARENA_FAKE_LOCAL).toBeUndefined();
     expect(launch.env.SATS_ARENA_SATS_PER_PERCENT).toBe("1");
+    expect(launch.env.SATS_ARENA_ENTRY_SATS).toBe("400");
   });
   it("accepts an explicit dev URI instead of unlocking saved production credentials", async () => {
     const secrets = {
@@ -78,6 +83,28 @@ describe("native wallet configuration", () => {
     });
     await expect(nativeWalletLaunch(settings, secrets, { SATS_ARENA_WALLET_BACKEND: "other" })).rejects.toThrow(
       "fake or nwc",
+    );
+  });
+  it("passes saved local rules and preserves explicit development overrides", async () => {
+    const secrets = { get: async () => uri };
+    const launch = await nativeWalletLaunch(
+      { ...settings, satsArenaEntrySats: 275, satsArenaSatsPerPercent: 3 },
+      secrets,
+      {},
+    );
+    expect(launch.env.SATS_ARENA_ENTRY_SATS).toBe("275");
+    expect(launch.env.SATS_ARENA_SATS_PER_PERCENT).toBe("3");
+    const override = await nativeWalletLaunch(settings, secrets, {
+      SATS_ARENA_ENTRY_SATS: "200",
+      SATS_ARENA_SATS_PER_PERCENT: "2",
+    });
+    expect(override.env.SATS_ARENA_ENTRY_SATS).toBe("200");
+    expect(override.env.SATS_ARENA_SATS_PER_PERCENT).toBe("2");
+    await expect(nativeWalletLaunch({ ...settings, satsArenaEntrySats: 0 }, secrets, {})).rejects.toThrow(
+      "Entry invoice amount",
+    );
+    await expect(nativeWalletLaunch({ ...settings, satsArenaSatsPerPercent: 1.5 }, secrets, {})).rejects.toThrow(
+      "whole numbers",
     );
   });
   it("strips every Arena configuration key from replay/netplay/configure child environments", () => {
@@ -109,6 +136,7 @@ describe.skipIf(process.platform === "win32")("native game private stdin handoff
       isoPath: iso,
       satsArenaDolphinBinaryPath: binary,
       satsArenaWalletBackend: "nwc",
+      satsArenaEntrySats: 400,
       satsArenaSatsPerPercent: 1,
     } as SettingsSchema;
     vi.stubEnv("ARENA_TEST_REPORT", path.join(folder, "report.json"));

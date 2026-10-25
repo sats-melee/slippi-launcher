@@ -44,6 +44,7 @@ it.skipIf(!enabled)(
       isoPath: process.env.ARENA_NATIVE_E2E_ISO!,
       satsArenaDolphinBinaryPath: process.env.ARENA_NATIVE_E2E_BINARY ?? null,
       satsArenaWalletBackend: "fake",
+      satsArenaEntrySats: 400,
       satsArenaSatsPerPercent: 1,
     } as SettingsSchema;
     const getSecret = vi.fn(async () => {

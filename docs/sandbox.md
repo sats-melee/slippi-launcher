@@ -5,6 +5,13 @@ fixtures, server preview settings, and invoice diagnostics live under the
 settings gear → **Developer options**. New production profiles default to live
 NWC; `make sandbox` and the isolated agent helper explicitly select Sandbox.
 
+The splash page's **Local match settings** persist the entry amount (default
+400 sats per human) and damage rate (default 1 sat per 1%). Click **Save settings**
+before opening LOCAL. The launcher passes both values to the native host;
+development environment overrides remain supported. On reopening an unpaid
+lobby, changed terms replace its invoices and retain old hashes for late-payment
+returns. A partially or fully funded match keeps its original agreement.
+
 From `/home/deck/projects` or this checkout:
 
 ```sh

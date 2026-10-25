@@ -79,6 +79,7 @@ export interface SettingsSchema {
   satsArenaHostAllowRemote: boolean;
   satsArenaInviteCode: string;
   satsArenaWalletBackend: SatsArenaWalletBackend;
+  satsArenaEntrySats: number;
   satsArenaSatsPerPercent: number;
   satsArenaWinSats: number;
   satsArenaMaxDepositSats: number;
