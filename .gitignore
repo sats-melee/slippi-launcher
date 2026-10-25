@@ -36,3 +36,8 @@ CodeSignTool
 
 # asdf tools file
 .tool-versions
+
+# Machine-local release payload, build logs, and Python helper caches
+assets/include/sats-arena/
+.release/
+__pycache__/

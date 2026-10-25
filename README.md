@@ -11,6 +11,9 @@ This repository is part of the Project Slippi ecosystem. For more information ab
 This fork also includes a [Sats Arena server setup preview](docs/sats-arena.md)
 under **Settings → Sats Arena**, with Connect and local Host controls.
 
+For this workspace's production launcher, run **`make app`**. It builds,
+packages, installs, and opens the launcher. See [release setup](docs/release.md).
+
 ## Build Instructions
 
 ### Prerequisites
