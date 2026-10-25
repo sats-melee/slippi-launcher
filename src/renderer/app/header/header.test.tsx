@@ -41,31 +41,32 @@ describe("Arena header", () => {
   const showHeader = () =>
     render(
       <MemoryRouter>
-        <Header menuItems={[]} />
+        <Header />
       </MemoryRouter>,
     );
 
   it("shows Online, Local and settings without a launcher account gate", () => {
     showHeader();
-    expect(screen.getByText("Sats Arena")).toBeTruthy();
+    expect(screen.getByAltText("Sats Melee")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Online" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Local" })).toBeTruthy();
     expect(screen.queryByText("Log in")).toBeNull();
   });
 
-  it("launches Dolphin without requiring a launcher account", () => {
+  it("keeps Online disabled and never launches netplay", () => {
     showHeader();
     fireEvent.click(screen.getByRole("button", { name: "Online" }));
-    expect(mocks.launch).toHaveBeenCalledWith(false);
+    expect((screen.getByRole("button", { name: "Online" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(mocks.launch).not.toHaveBeenCalled();
     expect(mocks.launchLocal).not.toHaveBeenCalled();
     expect(mocks.open).not.toHaveBeenCalled();
   });
 
-  it.each(["Online", "Local"])("opens game setup when %s is pressed without an ISO", (label) => {
+  it("opens game setup when Local is pressed without an ISO", () => {
     mocks.isoPath = null;
     showHeader();
-    fireEvent.click(screen.getByRole("button", { name: label }));
+    fireEvent.click(screen.getByRole("button", { name: "Local" }));
     expect(mocks.launch).not.toHaveBeenCalled();
     expect(mocks.launchLocal).not.toHaveBeenCalled();
     expect(mocks.open).toHaveBeenCalledWith("/settings/melee-options");
@@ -77,6 +78,13 @@ describe("Arena header", () => {
     fireEvent.click(screen.getByRole("button", { name: "Local" }));
     await waitFor(() => expect(mocks.launchLocal).toHaveBeenCalledOnce());
     expect(mocks.launch).not.toHaveBeenCalled();
+  });
+
+  it("explains the beta and lost-funds disclaimer in About", async () => {
+    showHeader();
+    fireEvent.click(screen.getByRole("button", { name: "About" }));
+    expect(await screen.findByRole("dialog", { name: "About Sats Melee" })).toBeTruthy();
+    expect(screen.getByText(/developer is not responsible for lost funds/)).toBeTruthy();
   });
 
   it("disables Local while launching and shows startup errors", async () => {

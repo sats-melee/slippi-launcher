@@ -286,7 +286,7 @@ const ServerControls = React.memo(() => {
   );
 });
 
-const NwcSettings = React.memo(() => {
+export const NwcSettings = React.memo(({ compact = false }: { compact?: boolean }) => {
   const { satsArenaService } = useServices();
   const { showError, showSuccess } = useToasts();
   const [info, setInfo] = React.useState<SatsArenaNwcInfo | null>(null);
@@ -351,7 +351,10 @@ const NwcSettings = React.memo(() => {
 
   const showInput = editing || (info !== null && !info.saved);
   return (
-    <SettingItem name={Messages.nwcConnection()} description={Messages.nwcConnectionDescription()}>
+    <SettingItem
+      name={compact ? undefined : Messages.nwcConnection()}
+      description={compact ? Messages.nwcCompactDescription() : Messages.nwcConnectionDescription()}
+    >
       {info?.saved && !editing && (
         <div css={row}>
           <Typography>{Messages.nwcSaved()}</Typography>
@@ -366,28 +369,32 @@ const NwcSettings = React.memo(() => {
           >
             {Messages.replace()}
           </Button>
-          <Button
-            variant="text"
-            color="secondary"
-            disabled={checking}
-            onClick={() =>
-              satsArenaService
-                .clearNwcUri()
-                .then((value) => {
-                  setInfo(value);
-                  setCheck(null);
-                })
-                .catch(showError)
-            }
-          >
-            {Messages.remove()}
-          </Button>
+          {!compact && (
+            <Button
+              variant="text"
+              color="secondary"
+              disabled={checking}
+              onClick={() =>
+                satsArenaService
+                  .clearNwcUri()
+                  .then((value) => {
+                    setInfo(value);
+                    setCheck(null);
+                  })
+                  .catch(showError)
+              }
+            >
+              {Messages.remove()}
+            </Button>
+          )}
           <Button disabled={checking} onClick={() => checkWallet()}>
             {Messages.nwcCheck()}
           </Button>
-          <Button disabled={checking} onClick={() => checkWallet(true)}>
-            {Messages.nwcTestInvoice()}
-          </Button>
+          {!compact && (
+            <Button disabled={checking} onClick={() => checkWallet(true)}>
+              {Messages.nwcTestInvoice()}
+            </Button>
+          )}
         </div>
       )}
       {showInput && (
@@ -399,7 +406,8 @@ const NwcSettings = React.memo(() => {
             placeholder="nostr+walletconnect://…"
             value={uri}
             onChange={(e) => setUri(e.target.value)}
-            sx={{ minWidth: 420 }}
+            sx={{ minWidth: 240, flex: "1 1 280px", width: "auto" }}
+            label={Messages.nwcConnection()}
           />
           <Button variant="contained" color="secondary" disabled={!uri.trim()} onClick={save}>
             {Messages.save()}
@@ -412,7 +420,7 @@ const NwcSettings = React.memo(() => {
         <div>
           <Typography role={check.ok ? "status" : "alert"} color={check.ok ? "success.main" : "error.main"} css={row}>
             {check.ok && <CheckCircleIcon fontSize="small" aria-label={Messages.nwcVerified()} />}
-            {check.message}
+            {compact && check.ok && !check.invoice ? Messages.nwcConnected() : check.message}
           </Typography>
           {check.ok && check.invoice && check.qr_svg && (
             <div>

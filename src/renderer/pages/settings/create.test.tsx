@@ -27,7 +27,7 @@ describe("Arena settings navigation", () => {
   it("only exposes Arena, game, emulator, and app options", () => {
     const { Page } = createSettingsPage();
     render(<Page />);
-    expect(screen.getByRole("navigation").textContent).toBe("Game|Sats Arena|Dolphin|Appearance|Advanced|");
+    expect(screen.getByRole("navigation").textContent).toBe("Game|Developer options|Dolphin|Appearance|Advanced|");
     expect(screen.queryByText("Rules & Policies")).toBeNull();
     expect(screen.queryByText("Replays")).toBeNull();
   });

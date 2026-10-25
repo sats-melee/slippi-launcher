@@ -1,5 +1,9 @@
 export const HeaderMessages = {
-  arenaTitle: () => "Sats Arena",
+  arenaTitle: () => "Sats Melee",
+  home: () => "Sats Melee home",
+  about: () => "About",
+  playModes: () => "Play modes",
+  onlineUnavailable: () => "Online play is not configured yet.",
   online: () => "Online",
   local: () => "Local",
   launchingLocal: () => "Launching…",

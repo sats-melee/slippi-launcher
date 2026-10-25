@@ -22,7 +22,7 @@ export const App = React.memo(({ menuItems }: { menuItems: readonly MainMenuItem
       }}
     >
       <div style={{ flexShrink: 0 }}>
-        <Header menuItems={menuItems} />
+        <Header />
       </div>
       <div style={{ flex: 1, overflow: "auto", display: "flex" }}>
         <Routes>

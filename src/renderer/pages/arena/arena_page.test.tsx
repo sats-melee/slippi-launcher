@@ -1,42 +1,44 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { ArenaPage } from "./arena_page";
 
-const mocks = vi.hoisted(() => ({
-  iso: "melee.iso" as string | null,
-  launch: vi.fn(async () => undefined),
-  showError: vi.fn(),
-  open: vi.fn(),
+const mocks = vi.hoisted(() => ({ iso: "melee.iso" as string | null, backend: "nwc", open: vi.fn() }));
+vi.mock("@/lib/hooks/use_settings", () => ({
+  useSetting: (key: string) => [key === "isoPath" ? mocks.iso : mocks.backend],
 }));
-vi.mock("@/lib/hooks/use_settings", () => ({ useSetting: () => [mocks.iso] }));
 vi.mock("@/lib/hooks/use_settings_modal", () => ({ useSettingsModal: () => ({ open: mocks.open }) }));
-vi.mock("@/lib/hooks/use_toasts", () => ({ useToasts: () => ({ showError: mocks.showError }) }));
-vi.mock("@/services", () => ({ useServices: () => ({ satsArenaService: { launchLocalGame: mocks.launch } }) }));
-vi.mock("@/pages/settings/sats_arena_settings/sats_arena_settings", () => ({ SatsArenaSettings: () => null }));
+vi.mock("@/pages/settings/sats_arena_settings/sats_arena_settings", () => ({
+  NwcSettings: () => <div>NWC connection</div>,
+}));
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   mocks.iso = "melee.iso";
+  mocks.backend = "nwc";
 });
 
-describe("local Arena play", () => {
-  it("uses the dedicated local-game IPC and does not need host-server mode", async () => {
-    render(<ArenaPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Play local Arena" }));
-    await waitFor(() => expect(mocks.launch).toHaveBeenCalledOnce());
-    expect(mocks.launch).toHaveBeenCalledWith();
-  });
-  it("requires an ISO and exposes connection/startup errors without secret data", async () => {
-    mocks.iso = null;
-    const { unmount } = render(<ArenaPage />);
-    expect((screen.getByRole("button", { name: "Play local Arena" }) as HTMLButtonElement).disabled).toBe(true);
-    unmount();
-    mocks.iso = "melee.iso";
-    const error = new Error("Save an NWC connection in Wallet settings before playing with Lightning");
-    mocks.launch.mockRejectedValueOnce(error);
-    render(<ArenaPage />);
-    fireEvent.click(screen.getByRole("button", { name: "Play local Arena" }));
-    await waitFor(() => expect(mocks.showError).toHaveBeenCalledWith(error));
-  });
+it("shows a focused wallet view without server or sandbox settings", () => {
+  render(<ArenaPage />);
+  expect(screen.getByRole("region", { name: "Lightning wallet" })).toBeTruthy();
+  expect(screen.getByText("NWC connection")).toBeTruthy();
+  expect(screen.queryByText("Server mode")).toBeNull();
+  expect(screen.queryByText("Sandbox — Alby test wallets")).toBeNull();
+  expect(screen.queryByRole("button", { name: "Play local Arena" })).toBeNull();
+});
+
+it("keeps missing-ISO setup reachable", () => {
+  mocks.iso = null;
+  render(<ArenaPage />);
+  fireEvent.click(screen.getByRole("button", { name: "Choose your Melee ISO to play" }));
+  expect(mocks.open).toHaveBeenCalledWith("/settings/melee-options");
+});
+
+it("identifies an active test wallet and links to developer options without unlocking live NWC", () => {
+  mocks.backend = "sandbox";
+  render(<ArenaPage />);
+  expect(screen.queryByText("NWC connection")).toBeNull();
+  expect(screen.getByText(/developer test wallet is active/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Developer options" }));
+  expect(mocks.open).toHaveBeenCalledWith("/settings/sats-arena");
 });

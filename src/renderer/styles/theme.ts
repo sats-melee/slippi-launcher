@@ -4,13 +4,13 @@ import { createTheme } from "@mui/material/styles";
 // This is a limitation of MUI theme in that we can't import css variables
 // so we'll just hard code these for now.
 const colors = {
-  orangePrimary: "#f7931a",
-  orangeLight: "#ffb45b",
+  accent: "#d33d52",
+  accentLight: "#f58b94",
 
   // These are used on the home/launch page
   grayDark: "#222222",
-  surface: "#251b14",
-  background: "#16120f",
+  surface: "#191b22",
+  background: "#101116",
   offGray: "#2D313A",
   offWhite: "#E0E0E0",
 
@@ -34,11 +34,11 @@ const theme = createTheme({
       secondary: "#B4B4B4",
     },
     primary: {
-      main: colors.orangePrimary,
-      contrastText: colors.background,
+      main: colors.accent,
+      contrastText: "#ffffff",
     },
     secondary: {
-      main: colors.orangeLight,
+      main: colors.accentLight,
       contrastText: colors.background,
     },
     divider: "rgba(255,255,255)",
@@ -147,10 +147,10 @@ const addOverrides = (theme: Theme) => {
         styleOverrides: {
           root: {
             "&.Mui-selected": {
-              backgroundColor: "rgba(247, 147, 26, 0.16)",
+              backgroundColor: "rgba(227, 75, 93, 0.16)",
             },
             "&.Mui-selected:hover": {
-              backgroundColor: "rgba(247, 147, 26, 0.24)",
+              backgroundColor: "rgba(227, 75, 93, 0.24)",
             },
           },
         },
@@ -159,10 +159,10 @@ const addOverrides = (theme: Theme) => {
         styleOverrides: {
           root: {
             "&.Mui-selected": {
-              backgroundColor: "rgba(247, 147, 26, 0.16)",
+              backgroundColor: "rgba(227, 75, 93, 0.16)",
             },
             "&.Mui-selected:hover": {
-              backgroundColor: "rgba(247, 147, 26, 0.24)",
+              backgroundColor: "rgba(227, 75, 93, 0.24)",
             },
           },
         },

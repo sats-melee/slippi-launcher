@@ -1,5 +1,10 @@
 # Alby Sandbox development
 
+The launcher home shows the live NWC connection. Sandbox selection, its player
+fixtures, server preview settings, and invoice diagnostics live under the
+settings gear → **Developer options**. New production profiles default to live
+NWC; `make sandbox` and the isolated agent helper explicitly select Sandbox.
+
 From `/home/deck/projects` or this checkout:
 
 ```sh

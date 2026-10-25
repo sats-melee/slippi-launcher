@@ -5,72 +5,102 @@ import React from "react";
 
 import { useSetting } from "@/lib/hooks/use_settings";
 import { useSettingsModal } from "@/lib/hooks/use_settings_modal";
-import { useToasts } from "@/lib/hooks/use_toasts";
-import { SatsArenaSettings } from "@/pages/settings/sats_arena_settings/sats_arena_settings";
-import { useServices } from "@/services";
+import { NwcSettings } from "@/pages/settings/sats_arena_settings/sats_arena_settings";
+import logo from "@/styles/images/sats-melee-logo.png";
 
 import { ArenaPageMessages as Messages } from "./arena_page.messages";
 
 export const ArenaPage = React.memo(() => {
   const [isoPath] = useSetting("isoPath");
+  const [walletBackend] = useSetting("satsArenaWalletBackend");
   const { open } = useSettingsModal();
-  const { satsArenaService } = useServices();
-  const { showError } = useToasts();
-  const [launching, setLaunching] = React.useState(false);
-  const play = async () => {
-    setLaunching(true);
-    try {
-      await satsArenaService.launchLocalGame();
-    } catch (error) {
-      showError(error);
-    } finally {
-      setLaunching(false);
-    }
-  };
-
   return (
     <main
       css={css`
         width: 100%;
-        max-width: 1000px;
-        margin: 0 auto;
-        padding: 32px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        padding: 48px 40px;
         box-sizing: border-box;
+        &::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: #191c24;
+          opacity: 0.45;
+          clip-path: polygon(0 0, 26% 0, 52% 100%, 0 100%);
+          pointer-events: none;
+        }
+        @media (max-height: 550px) {
+          padding-top: 24px;
+          padding-bottom: 24px;
+        }
       `}
     >
-      <Typography variant="h4" component="h1">
-        {Messages.title()}
-      </Typography>
-      <Typography
-        color="text.secondary"
+      <div
         css={css`
-          margin: 8px 0 20px;
+          position: relative;
+          display: grid;
+          grid-template-columns: minmax(240px, 0.9fr) minmax(360px, 1.1fr);
+          align-items: center;
+          gap: 64px;
+          width: 100%;
+          max-width: 1020px;
+          margin: 0 auto;
+          @media (max-width: 980px) {
+            gap: 32px;
+          }
+          @media (max-width: 760px) {
+            grid-template-columns: 1fr;
+            gap: 20px;
+          }
         `}
       >
-        {Messages.description()}
-      </Typography>
-      <Button
-        variant="contained"
-        disabled={!isoPath || launching}
-        onClick={play}
-        css={css`
-          margin-right: 8px;
-        `}
-      >
-        {launching ? Messages.launching() : Messages.playLocal()}
-      </Button>
-      <Button variant="outlined" color="secondary" onClick={() => open("/settings/melee-options")}>
-        {isoPath ? Messages.gameSettings() : Messages.chooseIso()}
-      </Button>
-      <section
-        css={css`
-          margin-top: 24px;
-          border-top: 1px solid var(--arena-border);
-          padding-top: 16px;
-        `}
-      >
-        <SatsArenaSettings />
-      </section>
+        <div
+          css={css`
+            text-align: center;
+            padding-bottom: 24px;
+          `}
+        >
+          <img
+            src={logo}
+            alt=""
+            aria-hidden={true}
+            css={css`
+              display: block;
+              width: 100%;
+              max-width: 420px;
+              margin: 0 auto 20px;
+            `}
+          />
+          <Typography sx={{ fontSize: 15, letterSpacing: "0.035em" }}>{Messages.versus()}</Typography>
+          <Typography color="text.secondary" sx={{ fontSize: 12, marginTop: 1 }}>
+            {Messages.matchTypes()}
+          </Typography>
+        </div>
+        <section aria-label={Messages.wallet()}>
+          <Typography variant="h6" component="h1">
+            {Messages.title()}
+          </Typography>
+          <Typography color="text.secondary" sx={{ marginTop: 1, marginBottom: 3, fontSize: 14, lineHeight: 1.7 }}>
+            {Messages.description()}
+          </Typography>
+          {walletBackend === "sandbox" || walletBackend === "fake" ? (
+            <>
+              <Typography color="text.secondary">{Messages.sandboxActive()}</Typography>
+              <Button onClick={() => open("/settings/sats-arena")}>{Messages.developerOptions()}</Button>
+            </>
+          ) : (
+            <NwcSettings compact={true} />
+          )}
+          {!isoPath && (
+            <Button variant="outlined" sx={{ marginTop: 3 }} onClick={() => open("/settings/melee-options")}>
+              {Messages.chooseIso()}
+            </Button>
+          )}
+        </section>
+      </div>
     </main>
   );
 });

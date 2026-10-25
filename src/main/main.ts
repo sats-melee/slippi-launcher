@@ -94,6 +94,7 @@ const createWindow = async () => {
   }
 
   mainWindow = new BrowserWindow({
+    title: "Sats Melee",
     show: false,
     width: 1100,
     height: 750,

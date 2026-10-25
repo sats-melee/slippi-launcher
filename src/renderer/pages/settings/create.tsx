@@ -18,7 +18,7 @@ export function createSettingsPage(): { Page: React.ComponentType } {
           component: <GameSettings />,
         },
         {
-          name: () => Messages.satsArena(),
+          name: () => Messages.developerOptions(),
           path: "sats-arena",
           component: <SatsArenaSettings />,
         },

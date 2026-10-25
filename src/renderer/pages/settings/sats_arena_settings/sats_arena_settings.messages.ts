@@ -36,6 +36,8 @@ export const SatsArenaSettingsMessages = {
   sandboxPreparing: () => "Preparing test wallets…",
   sandboxReady: () => "Ready — test addresses will be filled in automatically.",
   nwcConnection: () => "NWC connection string",
+  nwcCompactDescription: () => "Use a connection with permission to create invoices, check payments, and send payouts.",
+  nwcConnected: () => "Wallet connected",
   nwcConnectionDescription: () =>
     "From your wallet (e.g. Alby Hub). Give it permission to create, look up and pay invoices, and set a budget. Anyone with this string can spend that budget.",
   nwcSaved: () => "A connection string is saved.",

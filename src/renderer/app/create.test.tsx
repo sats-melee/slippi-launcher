@@ -17,15 +17,7 @@ vi.mock("@/services", () => ({
 }));
 vi.mock("@/pages/arena/arena_page", () => ({ ArenaPage: () => <div>Arena screen</div> }));
 vi.mock("@/pages/settings/create", () => ({ createSettingsPage: () => ({ Page: () => <div>Settings screen</div> }) }));
-vi.mock("@/app/header/header", () => ({
-  Header: ({ menuItems }: { menuItems: { subpath: string; title: () => string }[] }) => (
-    <nav>
-      {menuItems.map((item) => (
-        <span key={item.subpath}>{item.title()}</span>
-      ))}
-    </nav>
-  ),
-}));
+vi.mock("@/app/header/header", () => ({ Header: () => null }));
 vi.mock("@/components/persistent_notification/persistent_notification", () => ({ PersistentNotification: () => null }));
 vi.mock("@/components/rosetta_install_dialog/rosetta_install_dialog", () => ({ RosettaInstallDialog: () => null }));
 
@@ -39,7 +31,6 @@ describe("Arena navigation", () => {
       const { App } = createApp({ services: {} as Services });
       render(<App />);
       await waitFor(() => expect(screen.getByText("Arena screen")).toBeTruthy());
-      expect(screen.getByRole("navigation").textContent).toBe("Arena");
       expect(window.location.hash).toBe("#/main/arena");
     },
   );
