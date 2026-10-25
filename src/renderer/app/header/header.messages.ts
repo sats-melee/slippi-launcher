@@ -1,5 +1,8 @@
 export const HeaderMessages = {
   arenaTitle: () => "Sats Arena",
+  online: () => "Online",
+  local: () => "Local",
+  launchingLocal: () => "Launching…",
   logIn: () => "Log in",
   checkForUpdates: () => "Check for updates",
   checkingForUpdates: () => "Checking for updates...",

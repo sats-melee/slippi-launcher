@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,6 +7,8 @@ import { Header } from "./header";
 const mocks = vi.hoisted(() => ({
   isoPath: "/games/melee.iso" as string | null,
   launch: vi.fn(),
+  launchLocal: vi.fn(async () => undefined),
+  ready: true,
   open: vi.fn(),
   showError: vi.fn(),
 }));
@@ -20,14 +22,18 @@ vi.mock("@/lib/hooks/use_toasts", () => ({ useToasts: () => ({ showError: mocks.
 vi.mock("@/lib/dolphin/use_dolphin_actions", () => ({ useDolphinActions: () => ({ launchNetplay: mocks.launch }) }));
 vi.mock("@/lib/dolphin/use_dolphin_store", () => ({
   DolphinStatus: { READY: "ready" },
-  useDolphinStore: (select: (state: { netplayStatus: string }) => unknown) => select({ netplayStatus: "ready" }),
+  useDolphinStore: (select: (state: { netplayStatus: string }) => unknown) =>
+    select({ netplayStatus: mocks.ready ? "ready" : "updating" }),
 }));
-vi.mock("@/services", () => ({ useServices: () => ({ dolphinService: {} }) }));
+vi.mock("@/services", () => ({
+  useServices: () => ({ dolphinService: {}, satsArenaService: { launchLocalGame: mocks.launchLocal } }),
+}));
 vi.mock("@/styles/platform_title_bar_styles", () => ({ platformTitleBarStyles: () => "" }));
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.isoPath = "/games/melee.iso";
+  mocks.ready = true;
 });
 afterEach(cleanup);
 
@@ -39,25 +45,54 @@ describe("Arena header", () => {
       </MemoryRouter>,
     );
 
-  it("shows Play and settings but no sign-in or account menu", () => {
+  it("shows Online, Local and settings without a launcher account gate", () => {
     showHeader();
     expect(screen.getByText("Sats Arena")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Online" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Local" })).toBeTruthy();
     expect(screen.queryByText("Log in")).toBeNull();
   });
 
   it("launches Dolphin without requiring a launcher account", () => {
     showHeader();
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(screen.getByRole("button", { name: "Online" }));
     expect(mocks.launch).toHaveBeenCalledWith(false);
+    expect(mocks.launchLocal).not.toHaveBeenCalled();
     expect(mocks.open).not.toHaveBeenCalled();
   });
 
-  it("opens game setup, not sign-in, when the ISO is missing", () => {
+  it.each(["Online", "Local"])("opens game setup when %s is pressed without an ISO", (label) => {
     mocks.isoPath = null;
     showHeader();
-    fireEvent.click(screen.getByRole("button", { name: "Play" }));
+    fireEvent.click(screen.getByRole("button", { name: label }));
     expect(mocks.launch).not.toHaveBeenCalled();
+    expect(mocks.launchLocal).not.toHaveBeenCalled();
     expect(mocks.open).toHaveBeenCalledWith("/settings/melee-options");
+  });
+
+  it("launches local Arena independently of the online Dolphin installation", async () => {
+    mocks.ready = false;
+    showHeader();
+    fireEvent.click(screen.getByRole("button", { name: "Local" }));
+    await waitFor(() => expect(mocks.launchLocal).toHaveBeenCalledOnce());
+    expect(mocks.launch).not.toHaveBeenCalled();
+  });
+
+  it("disables Local while launching and shows startup errors", async () => {
+    let fail!: (error: Error) => void;
+    mocks.launchLocal.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
+    showHeader();
+    fireEvent.click(screen.getByRole("button", { name: "Local" }));
+    expect((screen.getByRole("button", { name: "Launching…" }) as HTMLButtonElement).disabled).toBe(true);
+    const error = new Error("Save an NWC connection before playing");
+    fail(error);
+    await waitFor(() => expect(mocks.showError).toHaveBeenCalledWith(error));
+    expect((screen.getByRole("button", { name: "Local" }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

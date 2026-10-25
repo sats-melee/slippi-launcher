@@ -7,6 +7,7 @@ import { app } from "electron";
 import { access, constants, mkdir, stat } from "fs/promises";
 import path from "path";
 
+import { prepareLocalGameProfile } from "./local_game_profile";
 import type { NwcSecretStore } from "./nwc_secret_store";
 import { isValidNwcUri } from "./nwc_secret_store";
 
@@ -74,6 +75,7 @@ export class SatsArenaNativeGame {
       const launch = await nativeWalletLaunch(settings, this.secrets, { ...sanitizeAppImageEnv() });
       const userPath = path.join(app.getPath("userData"), "sats-arena", "dolphin-user");
       await mkdir(userPath, { recursive: true, mode: 0o700 });
+      await prepareLocalGameProfile(userPath);
       const child = spawn(binary, ["-b", "-e", settings.isoPath, "-u", userPath], {
         env: launch.env,
         // Dolphin does not read stdin for gameplay. A closed private pipe works on all platforms.

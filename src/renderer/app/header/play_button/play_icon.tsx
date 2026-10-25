@@ -5,6 +5,7 @@ import { withFont } from "@/styles/with_font";
 
 export const PlayIcon = ({ children, fillPercent = 1 }: React.PropsWithChildren<{ fillPercent?: number }>) => {
   const offset = `${(fillPercent * 100).toFixed(2)}%`;
+  const gradientId = React.useId();
   return (
     <div
       css={css`
@@ -30,7 +31,7 @@ export const PlayIcon = ({ children, fillPercent = 1 }: React.PropsWithChildren<
       </div>
       <svg width="166" height="45" viewBox="0 0 166 45" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="gradient" x1="0" x2="1" y1="0" y2="0">
+          <linearGradient id={gradientId} x1="0" x2="1" y1="0" y2="0">
             <stop offset="0%" stopColor="var(--green-dark)" />
             <stop offset={offset} stopColor="var(--green-dark)" />
             <stop offset={offset} stopColor="transparent" stopOpacity="0" />
@@ -40,7 +41,7 @@ export const PlayIcon = ({ children, fillPercent = 1 }: React.PropsWithChildren<
         <g>
           <path
             d="M143.458 0C143.445 0 143.445 0 143.458 0H18.407L0 32.5853L8.59249 45H143.458V36.0338V35.3181V32.5333C148.937 32.5333 153.388 28.0307 153.388 22.487C153.388 16.9433 148.937 12.4407 143.458 12.4407V8.96616C150.854 8.96616 156.835 15.0304 156.835 22.5C156.835 28.7724 152.616 34.0298 146.905 35.5654V44.7007C157.543 43.022 165.685 33.7305 165.685 22.5C165.698 10.0723 155.729 0 143.458 0ZM147.047 22.5C147.047 24.504 145.439 26.1307 143.458 26.1307V18.8693C145.439 18.8693 147.047 20.496 147.047 22.5Z"
-            fill="url(#gradient)"
+            fill={`url(#${gradientId})`}
           />
         </g>
         <path

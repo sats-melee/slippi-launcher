@@ -1,7 +1,10 @@
 # Local Arena wallet handoff
 
-Choose your Melee ISO and open the Arena page. The Wallet setting applies to
-**Play local Arena**, independently of the separate server-preview mode.
+Choose your Melee ISO, then press **LOCAL** in the launcher header or
+**Play local Arena** on the Arena page. Both open local VS character selection
+directly with the Arena payment panel. **ONLINE** retains the existing Slippi
+netplay launch and its in-game login. The Wallet setting applies to local Arena,
+independently of the separate server-preview mode.
 Select Fake wallet for simulated funding, or Nostr Wallet Connect and save the
 connection through the existing protected secret store. The renderer only gets
 saved/encrypted status; it cannot read a previously saved connection string.

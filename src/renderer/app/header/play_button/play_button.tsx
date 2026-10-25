@@ -29,10 +29,10 @@ const MainButton = React.memo((props: MainButtonProps) => {
   );
 });
 
-type PlayButtonProps = Omit<MainButtonProps, "children" | "fillPercent">;
+type PlayButtonProps = Omit<MainButtonProps, "children" | "fillPercent"> & { label?: string };
 
-export const PlayButton = React.memo((props: PlayButtonProps) => {
-  return <MainButton {...props}>{Messages.play()}</MainButton>;
+export const PlayButton = React.memo(({ label, ...props }: PlayButtonProps) => {
+  return <MainButton {...props}>{label ?? Messages.play()}</MainButton>;
 });
 
 type UpdatingButtonProps = Omit<MainButtonProps, "children">;

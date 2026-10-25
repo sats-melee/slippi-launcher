@@ -115,6 +115,9 @@ describe.skipIf(process.platform === "win32")("native game private stdin handoff
     expect(report!.uriInEnvironment).toBeNull();
     expect(report!.args.join(" ")).not.toContain(uri);
     expect(report!.args).toEqual(["-b", "-e", settings.isoPath, "-u", path.join(folder, "sats-arena", "dolphin-user")]);
+    expect(await readFile(path.join(folder, "sats-arena/dolphin-user/GameSettings/GALE01.ini"), "utf8")).toContain(
+      "041BFA20 38600002",
+    );
     expect(JSON.stringify(settings)).not.toContain(uri);
   });
   it.skipIf(process.platform !== "linux")(

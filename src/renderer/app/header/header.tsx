@@ -5,7 +5,7 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useDolphinActions } from "@/lib/dolphin/use_dolphin_actions";
 import { DolphinStatus, useDolphinStore } from "@/lib/dolphin/use_dolphin_store";
@@ -27,11 +27,34 @@ const OuterBox = styled(Box)`
 `;
 
 export const Header = ({ menuItems }: { menuItems: readonly MenuItem[] }) => {
-  const { dolphinService } = useServices();
+  const { dolphinService, satsArenaService } = useServices();
   const { open } = useSettingsModal();
   const meleeIsoPath = useSettings((store) => store.settings.isoPath) || undefined;
   const { showError } = useToasts();
   const { launchNetplay } = useDolphinActions(dolphinService);
+  const [launchingLocal, setLaunchingLocal] = useState(false);
+  const localPending = useRef(false);
+
+  const onLocal = async () => {
+    if (!meleeIsoPath) {
+      showError(Messages.noMeleeIsoFile());
+      open("/settings/melee-options");
+      return;
+    }
+    if (localPending.current) {
+      return;
+    }
+    localPending.current = true;
+    setLaunchingLocal(true);
+    try {
+      await satsArenaService.launchLocalGame();
+    } catch (error) {
+      showError(error);
+    } finally {
+      localPending.current = false;
+      setLaunchingLocal(false);
+    }
+  };
 
   const onPlay = useCallback(() => {
     if (!meleeIsoPath) {
@@ -73,9 +96,16 @@ export const Header = ({ menuItems }: { menuItems: readonly MenuItem[] }) => {
         <div
           css={css`
             margin: 0 10px;
+            display: flex;
+            gap: 8px;
           `}
         >
           <PlayButton onClick={() => onPlay()} />
+          <PlayButtonImpl
+            label={launchingLocal ? Messages.launchingLocal() : Messages.local()}
+            disabled={launchingLocal}
+            onClick={onLocal}
+          />
         </div>
         <MainMenu menuItems={menuItems} />
       </div>
@@ -112,7 +142,7 @@ const PlayButton = ({ onClick }: { onClick: () => void }) => {
   }, [installProgress, installStatus]);
 
   if (installStatus === DolphinStatus.READY) {
-    return <PlayButtonImpl onClick={onClick} />;
+    return <PlayButtonImpl label={Messages.online()} onClick={onClick} />;
   }
 
   return <UpdatingButton onClick={onClick} fillPercent={fillPercent} />;
