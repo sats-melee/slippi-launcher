@@ -1,4 +1,8 @@
-# Sats Arena server setup (preview)
+# Sats Arena launcher
+
+Use **Play local Arena** for the embedded game/sidebar flow and the saved wallet.
+See [native wallet handoff](native-wallet.md) for production and development setup.
+The server controls below remain a separate remote prototype.
 
 Open **Settings → Sats Arena** in the launcher.
 
@@ -46,8 +50,9 @@ or a private network such as Tailscale.
 ## NWC connection string
 
 Choose **Nostr Wallet Connect** to save/replace/remove a connection string.
-The launcher passes it to the child as `SATS_ARENA_NWC_URI`, never as a
-command-line argument or in the generated TOML/settings JSON. It is not sent
+For local games, the launcher passes it over a private stdin pipe. The older
+server preview receives it as `SATS_ARENA_NWC_URI`. Neither path puts it in
+command-line arguments or generated TOML/settings JSON. It is not sent
 to a remote server in Connect mode.
 
 The saved string is encrypted using Electron `safeStorage` when an OS

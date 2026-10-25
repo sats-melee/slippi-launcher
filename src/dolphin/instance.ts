@@ -12,6 +12,7 @@ import path from "path";
 import { fileExists } from "utils/file_exists";
 
 import { sanitizeAppImageEnv } from "./app_image_env/app_image_env";
+import { withoutArenaWalletEnv } from "./arena_wallet_env";
 import type { ReplayCommunication } from "./types";
 
 const log = electronLog.scope("dolphin/instance");
@@ -101,10 +102,11 @@ export class DolphinInstance extends EventEmitter {
           child = execFile(executablePath, params, {
             // 100MB
             maxBuffer: 1000 * 1000 * 100,
+            env: withoutArenaWalletEnv(sanitizeAppImageEnv()),
           });
         } else {
           child = spawn(executablePath, params, {
-            env: sanitizeAppImageEnv(),
+            env: withoutArenaWalletEnv(sanitizeAppImageEnv()),
           });
         }
 

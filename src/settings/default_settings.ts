@@ -42,6 +42,7 @@ export const defaultAppSettings: AppSettings = {
     satsArenaMode: "off",
     satsArenaServerUrl: "",
     satsArenaServerBinaryPath: null,
+    satsArenaDolphinBinaryPath: null,
     satsArenaHostPort: 8737,
     satsArenaHostAllowRemote: false,
     satsArenaInviteCode: "",

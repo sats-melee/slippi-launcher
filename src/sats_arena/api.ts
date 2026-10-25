@@ -5,6 +5,7 @@ import {
   ipc_satsArenaGetNwcInfo,
   ipc_satsArenaGetServerLogs,
   ipc_satsArenaGetServerStatus,
+  ipc_satsArenaLaunchLocalGame,
   ipc_satsArenaServerStatusEvent,
   ipc_satsArenaSetNwcUri,
   ipc_satsArenaStartServer,
@@ -13,6 +14,9 @@ import {
 import type { SatsArenaService } from "./types";
 
 const satsArenaApi: SatsArenaService = {
+  async launchLocalGame() {
+    await ipc_satsArenaLaunchLocalGame.renderer!.trigger({});
+  },
   async getServerStatus() {
     const { result } = await ipc_satsArenaGetServerStatus.renderer!.trigger({});
     return result;

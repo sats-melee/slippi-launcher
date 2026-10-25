@@ -11,6 +11,7 @@ export type SatsArenaNwcInfo = {
 };
 
 export type SatsArenaService = {
+  launchLocalGame(): Promise<void>;
   getServerStatus(): Promise<SatsArenaServerStatus>;
   startServer(): Promise<SatsArenaServerStatus>;
   stopServer(): Promise<SatsArenaServerStatus>;

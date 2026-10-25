@@ -13,7 +13,8 @@ export function isValidNwcUri(uri: string): boolean {
 /**
  * Keeps the NWC connection string out of the settings file. It's encrypted with
  * the OS keyring when one is available; otherwise it's a file only this user
- * can read. It is only ever handed to the server process via an env var.
+ * can read. Native Arena receives it through a private stdin pipe; the older server
+ * prototype receives it through its environment. It is never returned to the renderer.
  */
 export class NwcSecretStore {
   constructor(private readonly folder: string) {}

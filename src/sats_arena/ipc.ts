@@ -49,3 +49,9 @@ export const ipc_satsArenaServerStatusEvent = makeEndpoint.renderer(
   "satsArena_serverStatus",
   <{ status: SatsArenaServerStatus }>_,
 );
+
+export const ipc_satsArenaLaunchLocalGame = makeEndpoint.main(
+  "satsArena_launchLocalGame",
+  <EmptyPayload>_,
+  <EmptyPayload>_,
+);

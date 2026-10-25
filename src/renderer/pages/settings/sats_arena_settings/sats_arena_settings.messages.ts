@@ -1,7 +1,10 @@
 export const SatsArenaSettingsMessages = {
   previewNotice: () =>
-    "Server setup preview. Fake-wallet hosting works; real NWC payments and Dolphin match reporting are not connected yet.",
-  mode: () => "Mode",
+    "The settings below are for the separate remote server preview. Local games use the wallet selected above.",
+  nativeGame: () => "Local game program",
+  nativeGameDescription: () =>
+    "Use the bundled Arena Dolphin, a neighboring build, or select your installed Arena Dolphin program.",
+  mode: () => "Server mode",
   modeDescription: () => "Play on a server someone else runs, or run one on this computer for your friends.",
   modeOff: () => "Off",
   modeConnect: () => "Connect to a server",
@@ -21,7 +24,7 @@ export const SatsArenaSettingsMessages = {
   hideLogs: () => "Hide logs",
   restartToApply: () => "Stop and start the server again to apply changed settings.",
   wallet: () => "Wallet",
-  walletDescription: () => "Where deposits are received and withdrawals are paid from.",
+  walletDescription: () => "The wallet that receives local match entries and sends player payouts.",
   walletFake: () => "Fake wallet (no real sats, for testing)",
   walletNwc: () => "Nostr Wallet Connect",
   nwcConnection: () => "NWC connection string",

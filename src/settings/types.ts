@@ -74,6 +74,7 @@ export interface SettingsSchema {
   satsArenaMode: SatsArenaMode;
   satsArenaServerUrl: string;
   satsArenaServerBinaryPath: string | null;
+  satsArenaDolphinBinaryPath: string | null;
   satsArenaHostPort: number;
   satsArenaHostAllowRemote: boolean;
   satsArenaInviteCode: string;

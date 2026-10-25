@@ -10,11 +10,13 @@ import {
   ipc_satsArenaGetNwcInfo,
   ipc_satsArenaGetServerLogs,
   ipc_satsArenaGetServerStatus,
+  ipc_satsArenaLaunchLocalGame,
   ipc_satsArenaServerStatusEvent,
   ipc_satsArenaSetNwcUri,
   ipc_satsArenaStartServer,
   ipc_satsArenaStopServer,
 } from "./ipc";
+import { SatsArenaNativeGame } from "./native_game_process";
 import { NwcSecretStore } from "./nwc_secret_store";
 import { checkHealth, SatsArenaServerProcess } from "./server_process";
 
@@ -22,6 +24,11 @@ const log = electronLog.scope("sats_arena");
 
 export default function setupSatsArenaIpc({ settingsManager }: { settingsManager: SettingsManager }) {
   const secrets = new NwcSecretStore(path.join(app.getPath("userData"), "sats-arena"));
+  const nativeGame = new SatsArenaNativeGame(settingsManager, secrets);
+  ipc_satsArenaLaunchLocalGame.main!.handle(async () => {
+    await nativeGame.start();
+    return {};
+  });
   const server = new SatsArenaServerProcess(settingsManager, secrets, (status) => {
     ipc_satsArenaServerStatusEvent.main!.trigger({ status }).catch(log.error);
   });

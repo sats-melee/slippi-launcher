@@ -29,6 +29,8 @@ export const SatsArenaSettings = React.memo(() => {
   const [mode, setMode] = useSatsArenaMode();
   return (
     <div>
+      <WalletSettings />
+      <NativeGameSettings />
       <Typography variant="caption">{Messages.previewNotice()}</Typography>
       <SettingItem name={Messages.mode()} description={Messages.modeDescription()}>
         <RadioGroup value={mode} onChange={(_event, value) => setMode(value as typeof mode)}>
@@ -40,6 +42,33 @@ export const SatsArenaSettings = React.memo(() => {
       {mode === "connect" && <ConnectSettings />}
       {mode === "host" && <HostSettings />}
     </div>
+  );
+});
+
+const WalletSettings = React.memo(() => {
+  const [walletBackend, setWalletBackend] = useSetting("satsArenaWalletBackend");
+  return (
+    <div>
+      <SettingItem name={Messages.wallet()} description={Messages.walletDescription()}>
+        <RadioGroup value={walletBackend} onChange={(_event, value) => setWalletBackend(value as typeof walletBackend)}>
+          <FormControlLabel value="fake" label={Messages.walletFake()} control={<Radio />} />
+          <FormControlLabel value="nwc" label={Messages.walletNwc()} control={<Radio />} />
+        </RadioGroup>
+      </SettingItem>
+      {walletBackend === "nwc" && <NwcSettings />}
+    </div>
+  );
+});
+
+const NativeGameSettings = React.memo(() => {
+  const [binaryPath, setBinaryPath] = useSetting("satsArenaDolphinBinaryPath");
+  return (
+    <SettingItem name={Messages.nativeGame()} description={Messages.nativeGameDescription()}>
+      <PathInput value={binaryPath ?? ""} placeholder={Messages.notSet()} onSelect={setBinaryPath} />
+      <Button color="secondary" disabled={!binaryPath} onClick={() => setBinaryPath(null)}>
+        {Messages.useDefault()}
+      </Button>
+    </SettingItem>
   );
 });
 
@@ -56,7 +85,6 @@ const ConnectSettings = React.memo(() => {
 const HostSettings = React.memo(() => {
   const status = useSatsArenaServerStore((store) => store.status);
   const locked = status.state !== "stopped";
-  const [walletBackend, setWalletBackend] = useSetting("satsArenaWalletBackend");
   const [inviteCode, setInviteCode] = useSetting("satsArenaInviteCode");
   const [port, setPort] = useSetting("satsArenaHostPort");
   const [allowRemote, setAllowRemote] = useSetting("satsArenaHostAllowRemote");
@@ -69,14 +97,6 @@ const HostSettings = React.memo(() => {
     <div>
       <ServerControls />
       {locked && <Typography variant="caption">{Messages.restartToApply()}</Typography>}
-
-      <SettingItem name={Messages.wallet()} description={Messages.walletDescription()}>
-        <RadioGroup value={walletBackend} onChange={(_event, value) => setWalletBackend(value as typeof walletBackend)}>
-          <FormControlLabel value="fake" label={Messages.walletFake()} control={<Radio />} />
-          <FormControlLabel value="nwc" label={Messages.walletNwc()} control={<Radio />} />
-        </RadioGroup>
-      </SettingItem>
-      {walletBackend === "nwc" && <NwcSettings />}
 
       <SettingItem name={Messages.inviteCode()} description={Messages.inviteCodeDescription()}>
         <div css={row}>
