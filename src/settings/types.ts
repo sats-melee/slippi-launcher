@@ -80,6 +80,8 @@ export interface SettingsSchema {
   satsArenaInviteCode: string;
   satsArenaWalletBackend: SatsArenaWalletBackend;
   satsArenaEntrySats: number;
+  satsArenaSurchargePercent: number;
+  satsArenaBatchSeconds: number;
   satsArenaSatsPerPercent: number;
   satsArenaWinSats: number;
   satsArenaMaxDepositSats: number;

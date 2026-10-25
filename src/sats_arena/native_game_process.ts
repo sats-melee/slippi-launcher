@@ -19,7 +19,11 @@ type WalletPayload = {
   nwc_uri?: string;
   sandbox_players?: { nwc_uri: string; address: string }[];
 };
-type NativeSettings = Pick<SettingsSchema, "satsArenaWalletBackend" | "satsArenaEntrySats" | "satsArenaSatsPerPercent">;
+type NativeSettings = Pick<
+  SettingsSchema,
+  "satsArenaWalletBackend" | "satsArenaEntrySats" | "satsArenaSatsPerPercent"
+> &
+  Partial<Pick<SettingsSchema, "satsArenaSurchargePercent" | "satsArenaBatchSeconds">>;
 
 /** Only the main process calls this; the resulting secret is never returned over IPC. */
 export async function nativeWalletLaunch(
@@ -62,7 +66,10 @@ export async function nativeWalletLaunch(
     }
     payload.nwc_uri = uri;
   }
-  const env: NodeJS.ProcessEnv = { ...inherited, SATS_ARENA_WALLET_CONFIG: "stdin" };
+  const env: NodeJS.ProcessEnv = {
+    ...inherited,
+    SATS_ARENA_WALLET_CONFIG: "stdin",
+  };
   // Electron's AppRun disables AT-SPI for itself; native GTK controls need their own bridge.
   delete env.NO_AT_BRIDGE;
   // Never reuse a descriptor or disabled payment-gate flag from another launcher.
@@ -77,10 +84,22 @@ export async function nativeWalletLaunch(
   if (!/^\d+$/.test(entry) || !/^\d+$/.test(rate)) {
     throw new Error("Local match amounts must be whole numbers of sats.");
   }
-  const rulesError = localRulesError(Number(entry), Number(rate));
+  const batch = env.SATS_ARENA_BATCH_SECONDS ?? String(settings.satsArenaBatchSeconds ?? 5);
+  const surcharge = env.SATS_ARENA_SURCHARGE_BPS ?? String(Math.round((settings.satsArenaSurchargePercent ?? 2) * 100));
+  if (!/^\d+$/.test(batch) || !/^\d+$/.test(surcharge)) {
+    throw new Error("Payout delay and surcharge basis points must be whole numbers.");
+  }
+  const rulesError = localRulesError(
+    Number(entry),
+    Number(rate),
+    Number(batch),
+    env.SATS_ARENA_SURCHARGE_BPS === undefined ? settings.satsArenaSurchargePercent ?? 2 : Number(surcharge) / 100,
+  );
   if (rulesError) {
     throw new Error(rulesError);
   }
+  env.SATS_ARENA_BATCH_SECONDS = batch;
+  env.SATS_ARENA_SURCHARGE_BPS = surcharge;
   env.SATS_ARENA_ENTRY_SATS = entry;
   env.SATS_ARENA_SATS_PER_PERCENT = rate;
   return { payload, env };

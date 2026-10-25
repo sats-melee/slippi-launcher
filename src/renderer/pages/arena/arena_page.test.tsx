@@ -3,16 +3,29 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { ArenaPage } from "./arena_page";
 
-const mocks = vi.hoisted(() => ({ iso: "melee.iso" as string | null, backend: "nwc", open: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  iso: "melee.iso" as string | null,
+  backend: "nwc",
+  open: vi.fn(),
+}));
 vi.mock("@/lib/hooks/use_settings", () => ({
   useSetting: (key: string) => [
-    { isoPath: mocks.iso, satsArenaWalletBackend: mocks.backend, satsArenaEntrySats: 400, satsArenaSatsPerPercent: 1 }[
-      key
-    ],
+    {
+      isoPath: mocks.iso,
+      satsArenaWalletBackend: mocks.backend,
+      satsArenaEntrySats: 400,
+      satsArenaSatsPerPercent: 1,
+      satsArenaBatchSeconds: 5,
+      satsArenaSurchargePercent: 2,
+    }[key],
   ],
 }));
-vi.mock("@/lib/hooks/use_toasts", () => ({ useToasts: () => ({ showError: vi.fn(), showSuccess: vi.fn() }) }));
-vi.mock("@/lib/hooks/use_settings_modal", () => ({ useSettingsModal: () => ({ open: mocks.open }) }));
+vi.mock("@/lib/hooks/use_toasts", () => ({
+  useToasts: () => ({ showError: vi.fn(), showSuccess: vi.fn() }),
+}));
+vi.mock("@/lib/hooks/use_settings_modal", () => ({
+  useSettingsModal: () => ({ open: mocks.open }),
+}));
 vi.mock("@/pages/settings/sats_arena_settings/sats_arena_settings", () => ({
   NwcSettings: () => <div>NWC connection</div>,
 }));
@@ -43,11 +56,16 @@ it("defaults to 400 sats and 1 sat per percent, and saves both rules together", 
   const updateSettings = vi.fn(async () => undefined);
   Object.assign(window, { electron: { settings: { updateSettings } } });
   render(<ArenaPage />);
-  const entry = screen.getByLabelText("Entry invoice (sats)") as HTMLInputElement;
+  const entry = screen.getByLabelText("Player pot (sats)") as HTMLInputElement;
   const rate = screen.getByLabelText("Sats per 1% damage") as HTMLInputElement;
   expect(entry.value).toBe("400");
   expect(rate.value).toBe("1");
-  const save = screen.getByRole("button", { name: "Save settings" }) as HTMLButtonElement;
+  expect((screen.getByLabelText("Routing surcharge (%)") as HTMLInputElement).value).toBe("2");
+  expect((screen.getByLabelText("Damage payout delay (seconds)") as HTMLInputElement).value).toBe("5");
+  expect(screen.getByText(/408 sats per player: 400 into play \+ 8 routing contribution/)).toBeTruthy();
+  const save = screen.getByRole("button", {
+    name: "Save settings",
+  }) as HTMLButtonElement;
   expect(save.disabled).toBe(true);
   fireEvent.change(entry, { target: { value: "0" } });
   expect(save.disabled).toBe(true);
@@ -58,6 +76,8 @@ it("defaults to 400 sats and 1 sat per percent, and saves both rules together", 
     expect(updateSettings).toHaveBeenCalledWith([
       { key: "satsArenaEntrySats", value: 275 },
       { key: "satsArenaSatsPerPercent", value: 3 },
+      { key: "satsArenaSurchargePercent", value: 2 },
+      { key: "satsArenaBatchSeconds", value: 5 },
     ]),
   );
 });

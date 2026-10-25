@@ -5,9 +5,15 @@ fixtures, server preview settings, and invoice diagnostics live under the
 settings gear → **Developer options**. New production profiles default to live
 NWC; `make sandbox` and the isolated agent helper explicitly select Sandbox.
 
-The splash page's **Local match settings** persist the entry amount (default
-400 sats per human) and damage rate (default 1 sat per 1%). Click **Save settings**
-before opening LOCAL. The launcher passes both values to the native host;
+The splash page's **Local match settings** persist the playable pot (default
+400 sats per human), damage rate (1 sat per 1%), routing surcharge (2%), and
+payout delay (5 seconds, configurable from 1–120 seconds). Contributions round
+up to whole sats: the default invoice is 408 sats, of which 400 goes into play
+and 8 stays in the host wallet for routing fees. This contribution is retained
+even on cancellation; it is separate from gameplay winnings and does not promise
+to cover every routing fee. Use 0% to disable it. Late/invalid old invoices are
+returned in full. Click **Save settings** before opening LOCAL.
+The launcher passes all four values to the native host;
 development environment overrides remain supported. On reopening an unpaid
 lobby, changed terms replace its invoices and retain old hashes for late-payment
 returns. A partially or fully funded match keeps its original agreement.
@@ -21,6 +27,10 @@ make sandbox
 This builds and installs the production launcher, provisions five reusable Alby
 test wallets if needed, selects Sandbox, and opens the launcher. Press LOCAL.
 The game prefills all four receiving addresses and checks them at PRESS START.
+Successful receiving checks are cached by address for 30 minutes, including
+across rounds, controller slots, and restarts. Cached receiving limits must still
+cover this match's pot. A changed, expired, or incompatible address gets checked
+again; each outgoing invoice is independently fetched and validated.
 Each human gets a separate BOLT11 entry invoice. **Pay from test wallet** sends
 an NWC payment from that player's wallet; Arena's normal incoming-invoice lookup
 must confirm payment before admission. Damage batches and settlement use the
@@ -105,3 +115,16 @@ The standard `make test` covers release helpers. Payment unit/integration tests
 are in `src/sats_arena/sandbox.test.ts`, `native_game_process.test.ts`, and the
 adjacent `sats-arena` Rust workspace. `make sandbox-check` is opt-in and needs
 internet access to the Alby sandbox relay; it transfers one test satoshi.
+
+Local development overrides (apply when opening LOCAL):
+
+- `SATS_ARENA_ENTRY_SATS`: playable pot per human.
+- `SATS_ARENA_SATS_PER_PERCENT`: damage rate.
+- `SATS_ARENA_SURCHARGE_BPS`: surcharge in basis points (200 = 2%, 0 disables it).
+- `SATS_ARENA_BATCH_SECONDS`: whole seconds, 1–120. The first credited hit starts
+  the recipient's window; further hits join it without extending it. Match end
+  flushes pending damage immediately.
+
+Existing paid agreements preserve all their original terms. Archived ledgers
+record the pot, surcharge, and delay; `audit_arena.py` reports playable funds and
+retained routing contributions separately.

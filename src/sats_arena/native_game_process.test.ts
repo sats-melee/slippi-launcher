@@ -10,7 +10,9 @@ import { withoutArenaWalletEnv } from "../dolphin/arena_wallet_env";
 import { findNativeGameBinary, nativeWalletLaunch, SatsArenaNativeGame } from "./native_game_process";
 import type { NwcSecretStore } from "./nwc_secret_store";
 
-vi.mock("electron", () => ({ app: { getPath: vi.fn(), getAppPath: vi.fn(), isPackaged: false } }));
+vi.mock("electron", () => ({
+  app: { getPath: vi.fn(), getAppPath: vi.fn(), isPackaged: false },
+}));
 
 const uri = "nostr+walletconnect://fixture-wallet?secret=fixture-private-key";
 
@@ -48,16 +50,49 @@ describe("native wallet configuration", () => {
     await expect(nativeWalletLaunch(settings, secrets, {}, sandbox)).rejects.toThrow("sandbox offline");
     expect(secrets.get).not.toHaveBeenCalled();
   });
-  const settings = { satsArenaWalletBackend: "nwc", satsArenaEntrySats: 400, satsArenaSatsPerPercent: 1 } as const;
+  const settings = {
+    satsArenaWalletBackend: "nwc",
+    satsArenaEntrySats: 400,
+    satsArenaSatsPerPercent: 1,
+  } as const;
   it("reads the saved NWC in main and keeps it out of the production environment", async () => {
     const secrets = { get: vi.fn(async () => uri) };
-    const launch = await nativeWalletLaunch(settings, secrets, { PATH: "/test", SATS_ARENA_FAKE_LOCAL: "0" });
-    expect(launch.payload).toEqual({ version: 1, backend: "nwc", nwc_uri: uri });
+    const launch = await nativeWalletLaunch(settings, secrets, {
+      PATH: "/test",
+      SATS_ARENA_FAKE_LOCAL: "0",
+    });
+    expect(launch.payload).toEqual({
+      version: 1,
+      backend: "nwc",
+      nwc_uri: uri,
+    });
     expect(launch.env.SATS_ARENA_WALLET_CONFIG).toBe("stdin");
     expect(launch.env.SATS_ARENA_NWC_URI).toBeUndefined();
     expect(launch.env.SATS_ARENA_FAKE_LOCAL).toBeUndefined();
     expect(launch.env.SATS_ARENA_SATS_PER_PERCENT).toBe("1");
     expect(launch.env.SATS_ARENA_ENTRY_SATS).toBe("400");
+    expect(launch.env.SATS_ARENA_BATCH_SECONDS).toBe("5");
+    expect(launch.env.SATS_ARENA_SURCHARGE_BPS).toBe("200");
+  });
+  it("passes configurable payout delay and fee contribution, rejecting invalid saved or overridden terms", async () => {
+    const secrets = { get: vi.fn(async () => uri) };
+    const launch = await nativeWalletLaunch(
+      { ...settings, satsArenaBatchSeconds: 2, satsArenaSurchargePercent: 2.5 },
+      secrets,
+      {},
+    );
+    expect(launch.env.SATS_ARENA_BATCH_SECONDS).toBe("2");
+    expect(launch.env.SATS_ARENA_SURCHARGE_BPS).toBe("250");
+    const override = await nativeWalletLaunch(settings, secrets, {
+      SATS_ARENA_BATCH_SECONDS: "8",
+      SATS_ARENA_SURCHARGE_BPS: "0",
+    });
+    expect(override.env.SATS_ARENA_BATCH_SECONDS).toBe("8");
+    expect(override.env.SATS_ARENA_SURCHARGE_BPS).toBe("0");
+    await expect(nativeWalletLaunch({ ...settings, satsArenaBatchSeconds: 0 }, secrets, {})).rejects.toThrow("1–120");
+    await expect(nativeWalletLaunch({ ...settings, satsArenaSurchargePercent: 2.555 }, secrets, {})).rejects.toThrow(
+      "two decimal",
+    );
   });
   it("accepts an explicit dev URI instead of unlocking saved production credentials", async () => {
     const secrets = {
@@ -68,10 +103,17 @@ describe("native wallet configuration", () => {
     const launch = await nativeWalletLaunch({ ...settings, satsArenaWalletBackend: "fake" }, secrets, {
       SATS_ARENA_NWC_URI: uri,
     });
-    expect(launch.payload).toEqual({ version: 1, backend: "nwc", nwc_uri: uri });
+    expect(launch.payload).toEqual({
+      version: 1,
+      backend: "nwc",
+      nwc_uri: uri,
+    });
     expect(secrets.get).not.toHaveBeenCalled();
     await expect(
-      nativeWalletLaunch(settings, secrets, { SATS_ARENA_NWC_URI: uri, SATS_ARENA_WALLET_BACKEND: "fake" }),
+      nativeWalletLaunch(settings, secrets, {
+        SATS_ARENA_NWC_URI: uri,
+        SATS_ARENA_WALLET_BACKEND: "fake",
+      }),
     ).rejects.toThrow("conflicts");
   });
   it("fails closed for missing live credentials and sends no secret in fake mode", async () => {
@@ -81,9 +123,11 @@ describe("native wallet configuration", () => {
       version: 1,
       backend: "fake",
     });
-    await expect(nativeWalletLaunch(settings, secrets, { SATS_ARENA_WALLET_BACKEND: "other" })).rejects.toThrow(
-      "fake or nwc",
-    );
+    await expect(
+      nativeWalletLaunch(settings, secrets, {
+        SATS_ARENA_WALLET_BACKEND: "other",
+      }),
+    ).rejects.toThrow("fake or nwc");
   });
   it("passes saved local rules and preserves explicit development overrides", async () => {
     const secrets = { get: async () => uri };
@@ -155,7 +199,13 @@ describe.skipIf(process.platform === "win32")("native game private stdin handoff
     await game.start();
     const reportPath = path.join(folder, "report.json");
     let report:
-      | { args: string[]; payload: unknown; uriInEnvironment: string | null; transport: string; lines: number }
+      | {
+          args: string[];
+          payload: unknown;
+          uriInEnvironment: string | null;
+          transport: string;
+          lines: number;
+        }
       | undefined;
     for (let i = 0; i < 100; ++i) {
       try {
@@ -166,7 +216,11 @@ describe.skipIf(process.platform === "win32")("native game private stdin handoff
       }
     }
     expect(report).toBeDefined();
-    expect(report!.payload).toEqual({ version: 1, backend: "nwc", nwc_uri: uri });
+    expect(report!.payload).toEqual({
+      version: 1,
+      backend: "nwc",
+      nwc_uri: uri,
+    });
     expect(report!.transport).toBe("stdin");
     expect(report!.lines).toBe(1);
     expect(report!.uriInEnvironment).toBeNull();

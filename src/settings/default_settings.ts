@@ -48,6 +48,8 @@ export const defaultAppSettings: AppSettings = {
     satsArenaInviteCode: "",
     satsArenaWalletBackend: "nwc",
     satsArenaEntrySats: 400,
+    satsArenaSurchargePercent: 2,
+    satsArenaBatchSeconds: 5,
     satsArenaSatsPerPercent: 1,
     satsArenaWinSats: 100,
     satsArenaMaxDepositSats: 100000,
