@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -26,11 +27,13 @@ class StageNativeTests(unittest.TestCase):
         self.sys_file = self.binary.parent / "Sys/GameSettings/test.ini"
         self.library = self.native_root / "build-arena/Source/Core/DolphinWX/libsats_arena_local.so"
         self.rust_library = self.library.with_name("libslippi_rust_extensions.so")
+        self.audio = self.native_root / "Tools/arena/alsa-pulse.conf"
         for path, content in (
             (self.binary, b"fake native executable\n"),
             (self.sys_file, b"[fixture]\n"),
             (self.library, b"fake arena shared library\n"),
             (self.rust_library, b"fake Rust shared library\n"),
+            (self.audio, b"pcm.!default { type pulse }\n"),
         ):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
@@ -51,7 +54,7 @@ class StageNativeTests(unittest.TestCase):
             f"#!{sys.executable}\n"
             "import json, os, pathlib, sys\n"
             "result = dict(argv=sys.argv[1:], stdin=sys.stdin.buffer.read().hex(), "
-            "inherited=os.environ.get('ARENA_WRAPPER_TEST'))\n"
+            "inherited=os.environ.get('ARENA_WRAPPER_TEST'), pulse=os.environ.get('PULSE_SERVER'), alsa=os.environ.get('ALSA_CONFIG_PATH'))\n"
             "pathlib.Path(os.environ['ARENA_CAPTURE']).write_text(json.dumps(result))\n"
         )
         distrobox.chmod(0o755)
@@ -85,7 +88,7 @@ class StageNativeTests(unittest.TestCase):
     def test_each_native_resource_invalidates_cache_and_hash_is_stable(self):
         previous = self.stage()["sha256"]
         self.assertEqual(self.stage()["sha256"], previous)
-        for path in (self.binary, self.library, self.rust_library, self.sys_file):
+        for path in (self.binary, self.library, self.rust_library, self.sys_file, self.audio):
             with self.subTest(resource=path.name):
                 path.write_bytes(path.read_bytes() + b"changed\n")
                 current = self.stage()["sha256"]
@@ -125,6 +128,27 @@ class StageNativeTests(unittest.TestCase):
         cache = Path(env["XDG_DATA_HOME"]) / "sats-arena/runtime"
         self.assertEqual([path.name for path in cache.iterdir()], [digest])
         self.assertEqual((cache / digest / ".bundle-sha256").read_text().strip(), digest)
+
+    def test_audio_uses_the_host_pulse_socket_and_bundled_config(self):
+        digest = self.stage()["sha256"]
+        env = self.mock_environment()
+        runtime = self.root / "host runtime"
+        (runtime / "pulse").mkdir(parents=True)
+        pulse = runtime / "pulse/native"
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as server:
+            server.bind(str(pulse))
+            env["XDG_RUNTIME_DIR"] = str(runtime)
+            env.pop("PULSE_SERVER", None)
+            env.pop("ALSA_CONFIG_PATH", None)
+            result = self.launch_wrapper(env)
+            cached = Path(env["XDG_DATA_HOME"]) / "sats-arena/runtime" / digest
+            self.assertEqual(result["pulse"], "unix:" + str(pulse))
+            self.assertEqual(result["alsa"], str(cached / "alsa-pulse.conf"))
+            self.assertEqual((cached / "alsa-pulse.conf").read_bytes(), self.audio.read_bytes())
+            env.update(PULSE_SERVER="unix:/custom-server", ALSA_CONFIG_PATH="/custom audio.conf")
+            result = self.launch_wrapper(env)
+            self.assertEqual(result["pulse"], "unix:/custom-server")
+            self.assertEqual(result["alsa"], "/custom audio.conf")
 
     def test_missing_resource_fails_before_changing_previous_bundle(self):
         digest = self.stage()["sha256"]

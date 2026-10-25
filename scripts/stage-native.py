@@ -37,6 +37,7 @@ def stage(native_root: Path, output: Path) -> dict:
     sources = {
         "dolphin-emu": build / "Binaries" / "dolphin-emu",
         "Sys": build / "Binaries" / "Sys",
+        "alsa-pulse.conf": native_root / "Tools" / "arena" / "alsa-pulse.conf",
         "lib/libsats_arena_local.so": build / "Source" / "Core" / "DolphinWX" / "libsats_arena_local.so",
         "lib/libslippi_rust_extensions.so": build / "Source" / "Core" / "DolphinWX" / "libslippi_rust_extensions.so",
     }

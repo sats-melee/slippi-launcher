@@ -26,6 +26,7 @@ def ready():
                 and (target / ".bundle-sha256").read_text().strip() == digest
                 and (target / "dolphin-emu").is_file()
                 and (target / "Sys").is_dir()
+                and (target / "alsa-pulse.conf").is_file()
                 and (target / "lib" / "libsats_arena_local.so").is_file()
                 and (target / "lib" / "libslippi_rust_extensions.so").is_file())
     except OSError:
@@ -58,6 +59,12 @@ print(target)
 
 # Neither the cache helper nor Distrobox reads the private NWC handoff. stdin,
 # arguments, and the caller environment continue directly to the game process.
+pulse_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pulse/native"
+if [ -S "$pulse_socket" ]; then
+    # Both Dolphin's ALSA effects and the Rust music player use the host audio server.
+    export PULSE_SERVER="${PULSE_SERVER:-unix:$pulse_socket}"
+    export ALSA_CONFIG_PATH="${ALSA_CONFIG_PATH:-$runtime_dir/alsa-pulse.conf}"
+fi
 exec distrobox enter --name slippi-arena-build --no-tty -- \
     env GDK_BACKEND=x11 LD_LIBRARY_PATH="$runtime_dir/lib" \
     "$runtime_dir/dolphin-emu" "$@"
