@@ -10,6 +10,14 @@ export type SatsArenaNwcInfo = {
   encrypted: boolean;
 };
 
+export type SatsArenaNwcCheck = {
+  ok: boolean;
+  message: string;
+  invoice?: string;
+  qr_svg?: string;
+  amount_sats?: number;
+};
+
 export type SatsArenaService = {
   getSandboxInfo(): Promise<{ ready: boolean; addresses: string[] }>;
   setupSandbox(): Promise<{ ready: boolean; addresses: string[] }>;
@@ -21,6 +29,7 @@ export type SatsArenaService = {
   getNwcInfo(): Promise<SatsArenaNwcInfo>;
   setNwcUri(uri: string): Promise<SatsArenaNwcInfo>;
   clearNwcUri(): Promise<SatsArenaNwcInfo>;
+  checkNwc(createInvoice?: boolean): Promise<SatsArenaNwcCheck>;
   /** Calls `GET /health` on a server; used by the "Test connection" button. */
   checkServer(url: string): Promise<{ ok: boolean; message: string }>;
   onServerStatusChange(handle: (status: SatsArenaServerStatus) => void): () => void;

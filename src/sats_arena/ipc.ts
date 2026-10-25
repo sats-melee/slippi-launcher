@@ -2,7 +2,13 @@ import type { EmptyPayload } from "utils/ipc";
 import { _, makeEndpoint } from "utils/ipc";
 
 import type { SandboxInfo } from "./sandbox";
-import type { SatsArenaNwcInfo, SatsArenaServerStatus } from "./types";
+import type { SatsArenaNwcCheck, SatsArenaNwcInfo, SatsArenaServerStatus } from "./types";
+
+export const ipc_satsArenaCheckNwc = makeEndpoint.main(
+  "satsArena_checkNwc",
+  <{ createInvoice: boolean }>_,
+  <SatsArenaNwcCheck>_,
+);
 
 export const ipc_satsArenaGetSandboxInfo = makeEndpoint.main(
   "satsArena_getSandboxInfo",

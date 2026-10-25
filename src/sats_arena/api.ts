@@ -1,5 +1,6 @@
 /* eslint-disable import/no-default-export */
 import {
+  ipc_satsArenaCheckNwc,
   ipc_satsArenaCheckServer,
   ipc_satsArenaClearNwcUri,
   ipc_satsArenaGetNwcInfo,
@@ -16,6 +17,9 @@ import {
 import type { SatsArenaService } from "./types";
 
 const satsArenaApi: SatsArenaService = {
+  async checkNwc(createInvoice = false) {
+    return (await ipc_satsArenaCheckNwc.renderer!.trigger({ createInvoice })).result;
+  },
   async getSandboxInfo() {
     return (await ipc_satsArenaGetSandboxInfo.renderer!.trigger({})).result;
   },

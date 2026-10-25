@@ -5,6 +5,7 @@ import electronLog from "electron-log";
 import path from "path";
 
 import {
+  ipc_satsArenaCheckNwc,
   ipc_satsArenaCheckServer,
   ipc_satsArenaClearNwcUri,
   ipc_satsArenaGetNwcInfo,
@@ -19,9 +20,11 @@ import {
   ipc_satsArenaStopServer,
 } from "./ipc";
 import { SatsArenaNativeGame } from "./native_game_process";
+import { checkSavedNwc } from "./nwc_check";
 import { NwcSecretStore } from "./nwc_secret_store";
 import { SandboxWallets } from "./sandbox";
 import { checkHealth, SatsArenaServerProcess } from "./server_process";
+import type { SatsArenaNwcCheck } from "./types";
 
 const log = electronLog.scope("sats_arena");
 
@@ -52,6 +55,18 @@ export default function setupSatsArenaIpc({ settingsManager }: { settingsManager
   ipc_satsArenaStopServer.main!.handle(async () => server.stop());
   ipc_satsArenaGetServerLogs.main!.handle(async () => ({ logs: server.getLogs() }));
   ipc_satsArenaGetNwcInfo.main!.handle(async () => secrets.info());
+  let checking: Promise<SatsArenaNwcCheck> | null = null;
+  ipc_satsArenaCheckNwc.main!.handle(async ({ createInvoice }) => {
+    if (checking) {
+      return { ok: false, message: "A wallet check is already running. Try again when it finishes." };
+    }
+    checking = checkSavedNwc(secrets, settingsManager.get().settings.satsArenaDolphinBinaryPath, createInvoice);
+    try {
+      return await checking;
+    } finally {
+      checking = null;
+    }
+  });
   ipc_satsArenaSetNwcUri.main!.handle(async ({ uri }) => secrets.set(uri));
   ipc_satsArenaClearNwcUri.main!.handle(async () => secrets.clear());
   ipc_satsArenaCheckServer.main!.handle(async ({ url }) => checkHealth(url));

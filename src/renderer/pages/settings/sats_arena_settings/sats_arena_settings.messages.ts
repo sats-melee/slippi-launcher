@@ -39,6 +39,14 @@ export const SatsArenaSettingsMessages = {
   nwcConnectionDescription: () =>
     "From your wallet (e.g. Alby Hub). Give it permission to create, look up and pay invoices, and set a budget. Anyone with this string can spend that budget.",
   nwcSaved: () => "A connection string is saved.",
+  nwcCheck: () => "Check connection",
+  nwcChecking: () => "Checking wallet…",
+  nwcCheckFailed: () => "Could not check the saved wallet connection.",
+  nwcVerified: () => "Wallet verified",
+  nwcTestInvoice: () => "Generate test invoice",
+  nwcTestInvoiceDescription: () => "1 sat test invoice • expires in 10 minutes • no payment sent",
+  nwcTestInvoiceQr: () => "Lightning test invoice QR code",
+  nwcTestInvoiceLabel: () => "Lightning test invoice",
   nwcNotSaved: () => "No connection string saved.",
   nwcPlainTextWarning: () =>
     "No system keyring was found, so the connection string is stored unencrypted in a file only you can read.",

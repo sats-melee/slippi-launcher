@@ -36,6 +36,7 @@ def stage(native_root: Path, output: Path) -> dict:
     build = native_root / "build-arena"
     sources = {
         "dolphin-emu": build / "Binaries" / "dolphin-emu",
+        "sats-arena-wallet-check": build / "Binaries" / "sats-arena-wallet-check",
         "Sys": build / "Binaries" / "Sys",
         "alsa-pulse.conf": native_root / "Tools" / "arena" / "alsa-pulse.conf",
         "lib/libsats_arena_local.so": build / "Source" / "Core" / "DolphinWX" / "libsats_arena_local.so",
@@ -62,6 +63,7 @@ def stage(native_root: Path, output: Path) -> dict:
             else:
                 shutil.copy2(source, destination)
         (payload / "dolphin-emu").chmod(0o755)
+        (payload / "sats-arena-wallet-check").chmod(0o755)
         digest = bundle_hash(payload)
         (payload / ".bundle-sha256").write_text(digest + "\n")
         wrapper = scratch / "dolphin-emu"
@@ -78,6 +80,9 @@ def stage(native_root: Path, output: Path) -> dict:
         try:
             payload.rename(old_payload)
             os.replace(wrapper, output / "dolphin-emu")
+            check_wrapper = output / "sats-arena-wallet-check"
+            check_wrapper.write_text(template.replace(HASH_PLACEHOLDER, digest))
+            check_wrapper.chmod(0o755)
         except BaseException:
             if old_payload.exists():
                 shutil.rmtree(old_payload)

@@ -1,4 +1,5 @@
 import { css } from "@emotion/react";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import Button from "@mui/material/Button";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Radio from "@mui/material/Radio";
@@ -6,7 +7,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import type { SatsArenaNwcInfo } from "sats_arena/types";
+import type { SatsArenaNwcCheck, SatsArenaNwcInfo } from "sats_arena/types";
 
 import { Toggle } from "@/components/form/toggle";
 import { PathInput } from "@/components/path_input/path_input";
@@ -291,10 +292,50 @@ const NwcSettings = React.memo(() => {
   const [info, setInfo] = React.useState<SatsArenaNwcInfo | null>(null);
   const [editing, setEditing] = React.useState(false);
   const [uri, setUri] = React.useState("");
+  const [check, setCheck] = React.useState<SatsArenaNwcCheck | null>(null);
+  const [checking, setChecking] = React.useState(false);
+  const revision = React.useRef(0);
+  const checkWallet = React.useCallback(
+    async (createInvoice = false) => {
+      const token = ++revision.current;
+      setChecking(true);
+      setCheck(null);
+      try {
+        const result = await satsArenaService.checkNwc(createInvoice);
+        if (token === revision.current) {
+          setCheck(result);
+        }
+      } catch {
+        if (token === revision.current) {
+          setCheck({ ok: false, message: Messages.nwcCheckFailed() });
+        }
+      } finally {
+        if (token === revision.current) {
+          setChecking(false);
+        }
+      }
+    },
+    [satsArenaService],
+  );
 
   React.useEffect(() => {
-    satsArenaService.getNwcInfo().then(setInfo).catch(showError);
-  }, [satsArenaService, showError]);
+    let active = true;
+    satsArenaService
+      .getNwcInfo()
+      .then((value) => {
+        if (!active) {
+          return;
+        }
+        setInfo(value);
+        if (value.saved) {
+          void checkWallet();
+        }
+      })
+      .catch(showError);
+    return () => {
+      active = false;
+    };
+  }, [satsArenaService, showError, checkWallet]);
 
   const save = async () => {
     try {
@@ -302,6 +343,7 @@ const NwcSettings = React.memo(() => {
       setUri("");
       setEditing(false);
       showSuccess(Messages.nwcSaved());
+      void checkWallet();
     } catch (err) {
       showError(err);
     }
@@ -313,15 +355,38 @@ const NwcSettings = React.memo(() => {
       {info?.saved && !editing && (
         <div css={row}>
           <Typography>{Messages.nwcSaved()}</Typography>
-          <Button variant="outlined" color="secondary" onClick={() => setEditing(true)}>
+          <Button
+            variant="outlined"
+            color="secondary"
+            disabled={checking}
+            onClick={() => {
+              setEditing(true);
+              setCheck(null);
+            }}
+          >
             {Messages.replace()}
           </Button>
           <Button
             variant="text"
             color="secondary"
-            onClick={() => satsArenaService.clearNwcUri().then(setInfo).catch(showError)}
+            disabled={checking}
+            onClick={() =>
+              satsArenaService
+                .clearNwcUri()
+                .then((value) => {
+                  setInfo(value);
+                  setCheck(null);
+                })
+                .catch(showError)
+            }
           >
             {Messages.remove()}
+          </Button>
+          <Button disabled={checking} onClick={() => checkWallet()}>
+            {Messages.nwcCheck()}
+          </Button>
+          <Button disabled={checking} onClick={() => checkWallet(true)}>
+            {Messages.nwcTestInvoice()}
           </Button>
         </div>
       )}
@@ -342,6 +407,33 @@ const NwcSettings = React.memo(() => {
         </div>
       )}
       {info && !info.saved && !editing && <Typography variant="caption">{Messages.nwcNotSaved()}</Typography>}
+      {checking && <Typography role="status">{Messages.nwcChecking()}</Typography>}
+      {check && !editing && (
+        <div>
+          <Typography role={check.ok ? "status" : "alert"} color={check.ok ? "success.main" : "error.main"} css={row}>
+            {check.ok && <CheckCircleIcon fontSize="small" aria-label={Messages.nwcVerified()} />}
+            {check.message}
+          </Typography>
+          {check.ok && check.invoice && check.qr_svg && (
+            <div>
+              <Typography>{Messages.nwcTestInvoiceDescription()}</Typography>
+              <img
+                alt={Messages.nwcTestInvoiceQr()}
+                width={260}
+                height={260}
+                src={`data:image/svg+xml;charset=utf-8,${encodeURIComponent(check.qr_svg)}`}
+              />
+              <TextField
+                label={Messages.nwcTestInvoiceLabel()}
+                value={check.invoice}
+                fullWidth={true}
+                multiline={true}
+                InputProps={{ readOnly: true }}
+              />
+            </div>
+          )}
+        </div>
+      )}
       {info && !info.encrypted && (
         <Typography variant="caption" color="warning.main" component="div">
           {Messages.nwcPlainTextWarning()}

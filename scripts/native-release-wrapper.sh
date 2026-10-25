@@ -25,6 +25,7 @@ def ready():
         return (target.is_dir() and not target.is_symlink()
                 and (target / ".bundle-sha256").read_text().strip() == digest
                 and (target / "dolphin-emu").is_file()
+                and (target / "sats-arena-wallet-check").is_file()
                 and (target / "Sys").is_dir()
                 and (target / "alsa-pulse.conf").is_file()
                 and (target / "lib" / "libsats_arena_local.so").is_file()
@@ -65,6 +66,8 @@ if [ -S "$pulse_socket" ]; then
     export PULSE_SERVER="${PULSE_SERVER:-unix:$pulse_socket}"
     export ALSA_CONFIG_PATH="${ALSA_CONFIG_PATH:-$runtime_dir/alsa-pulse.conf}"
 fi
+program=$(basename -- "$0")
+case "$program" in dolphin-emu|sats-arena-wallet-check) ;; *) exit 2 ;; esac
 exec distrobox enter --name slippi-arena-build --no-tty -- \
     env GDK_BACKEND=x11 LD_LIBRARY_PATH="$runtime_dir/lib" \
-    "$runtime_dir/dolphin-emu" "$@"
+    "$runtime_dir/$program" "$@"

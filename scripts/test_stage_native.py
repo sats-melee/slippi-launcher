@@ -24,12 +24,14 @@ class StageNativeTests(unittest.TestCase):
         self.native_root = self.root / "native checkout"
         self.output = self.root / "App Image resources" / "sats-arena"
         self.binary = self.native_root / "build-arena/Binaries/dolphin-emu"
+        self.checker = self.binary.with_name("sats-arena-wallet-check")
         self.sys_file = self.binary.parent / "Sys/GameSettings/test.ini"
         self.library = self.native_root / "build-arena/Source/Core/DolphinWX/libsats_arena_local.so"
         self.rust_library = self.library.with_name("libslippi_rust_extensions.so")
         self.audio = self.native_root / "Tools/arena/alsa-pulse.conf"
         for path, content in (
             (self.binary, b"fake native executable\n"),
+            (self.checker, b"fake wallet diagnostic\n"),
             (self.sys_file, b"[fixture]\n"),
             (self.library, b"fake arena shared library\n"),
             (self.rust_library, b"fake Rust shared library\n"),
@@ -88,12 +90,22 @@ class StageNativeTests(unittest.TestCase):
     def test_each_native_resource_invalidates_cache_and_hash_is_stable(self):
         previous = self.stage()["sha256"]
         self.assertEqual(self.stage()["sha256"], previous)
-        for path in (self.binary, self.library, self.rust_library, self.sys_file, self.audio):
+        for path in (self.binary, self.checker, self.library, self.rust_library, self.sys_file, self.audio):
             with self.subTest(resource=path.name):
                 path.write_bytes(path.read_bytes() + b"changed\n")
                 current = self.stage()["sha256"]
                 self.assertNotEqual(current, previous)
                 previous = current
+
+    def test_wallet_check_wrapper_preserves_private_input_and_selects_checker(self):
+        digest = self.stage()["sha256"]
+        env = self.mock_environment()
+        payload = b'{"nwc_uri":"fixture-private-connection"}\n'
+        subprocess.run([str(self.output / "sats-arena-wallet-check"), "--invoice"], env=env, input=payload, check=True)
+        result = json.loads(Path(env["ARENA_CAPTURE"]).read_text())
+        expected = Path(env["XDG_DATA_HOME"]) / "sats-arena/runtime" / digest / "sats-arena-wallet-check"
+        self.assertEqual(result["argv"][-2:], [str(expected), "--invoice"])
+        self.assertEqual(bytes.fromhex(result["stdin"]), payload)
 
     def test_wrapper_preserves_stdin_arguments_and_environment_from_private_cache(self):
         digest = self.stage()["sha256"]
