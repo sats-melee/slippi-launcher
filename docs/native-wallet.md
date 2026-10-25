@@ -17,6 +17,10 @@ That wrapper forwards arguments, stdin and environment without choosing its own
 ISO or user profile. Empty checkouts are not treated as installed games. A
 custom native executable can be selected under Local game program. The child
 uses `<launcher userData>/sats-arena/dolphin-user` for its isolated Dolphin profile.
+On launch, missing controller bindings and their port types are imported from
+the working `SatsArenaDolphin` profile, falling back to `SlippiOnline`. All four
+ports are supported. Existing local controller bindings are preserved; wallet,
+account, game, and graphics settings are not imported.
 A packaged release needs the matching native build at
 `assets/include/sats-arena/dolphin-emu` (`.exe` on Windows).
 

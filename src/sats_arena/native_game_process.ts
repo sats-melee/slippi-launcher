@@ -75,7 +75,11 @@ export class SatsArenaNativeGame {
       const launch = await nativeWalletLaunch(settings, this.secrets, { ...sanitizeAppImageEnv() });
       const userPath = path.join(app.getPath("userData"), "sats-arena", "dolphin-user");
       await mkdir(userPath, { recursive: true, mode: 0o700 });
-      await prepareLocalGameProfile(userPath);
+      const configRoot = app.getPath("appData");
+      await prepareLocalGameProfile(userPath, [
+        path.join(configRoot, "SatsArenaDolphin"),
+        path.join(configRoot, "SlippiOnline"),
+      ]);
       const child = spawn(binary, ["-b", "-e", settings.isoPath, "-u", userPath], {
         env: launch.env,
         // Dolphin does not read stdin for gameplay. A closed private pipe works on all platforms.
