@@ -85,7 +85,7 @@ export interface SettingsSchema {
 }
 
 export type SatsArenaMode = "off" | "connect" | "host";
-export type SatsArenaWalletBackend = "fake" | "nwc";
+export type SatsArenaWalletBackend = "fake" | "sandbox" | "nwc";
 
 /**
  * Root-level app settings that aren't nested under "settings"

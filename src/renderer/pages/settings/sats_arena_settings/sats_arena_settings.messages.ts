@@ -26,7 +26,15 @@ export const SatsArenaSettingsMessages = {
   wallet: () => "Wallet",
   walletDescription: () => "The wallet that receives local match entries and sends player payouts.",
   walletFake: () => "Fake wallet (no real sats, for testing)",
-  walletNwc: () => "Nostr Wallet Connect",
+  walletSandbox: () => "Sandbox — Alby test wallets",
+  walletNwc: () => "Live Lightning — saved NWC connection",
+  walletRestart: () => "Wallet changes apply the next time you open LOCAL. Close an existing game first.",
+  sandboxTitle: () => "Sandbox players",
+  sandboxDescription: () =>
+    "Five reusable Alby test wallets are prepared automatically. Player addresses are prefilled in the game. Pay entry invoices with Pay from test wallet; confirmations and payouts use NWC. No real bitcoin is transferred.",
+  sandboxPrepare: () => "Prepare test wallets",
+  sandboxPreparing: () => "Preparing test wallets…",
+  sandboxReady: () => "Ready — test addresses will be filled in automatically.",
   nwcConnection: () => "NWC connection string",
   nwcConnectionDescription: () =>
     "From your wallet (e.g. Alby Hub). Give it permission to create, look up and pay invoices, and set a budget. Anyone with this string can spend that budget.",

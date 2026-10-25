@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sats Arena Sandbox"
+  short_description: "Test Melee funding and payouts with sandbox NWC"
+  default_prompt: "Use $sats-arena-sandbox to test the local Melee invoice, admission, damage payout, and winner settlement flow."

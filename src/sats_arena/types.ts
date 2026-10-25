@@ -11,6 +11,8 @@ export type SatsArenaNwcInfo = {
 };
 
 export type SatsArenaService = {
+  getSandboxInfo(): Promise<{ ready: boolean; addresses: string[] }>;
+  setupSandbox(): Promise<{ ready: boolean; addresses: string[] }>;
   launchLocalGame(): Promise<void>;
   getServerStatus(): Promise<SatsArenaServerStatus>;
   startServer(): Promise<SatsArenaServerStatus>;

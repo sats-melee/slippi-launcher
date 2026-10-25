@@ -3,17 +3,25 @@ import {
   ipc_satsArenaCheckServer,
   ipc_satsArenaClearNwcUri,
   ipc_satsArenaGetNwcInfo,
+  ipc_satsArenaGetSandboxInfo,
   ipc_satsArenaGetServerLogs,
   ipc_satsArenaGetServerStatus,
   ipc_satsArenaLaunchLocalGame,
   ipc_satsArenaServerStatusEvent,
   ipc_satsArenaSetNwcUri,
+  ipc_satsArenaSetupSandbox,
   ipc_satsArenaStartServer,
   ipc_satsArenaStopServer,
 } from "./ipc";
 import type { SatsArenaService } from "./types";
 
 const satsArenaApi: SatsArenaService = {
+  async getSandboxInfo() {
+    return (await ipc_satsArenaGetSandboxInfo.renderer!.trigger({})).result;
+  },
+  async setupSandbox() {
+    return (await ipc_satsArenaSetupSandbox.renderer!.trigger({})).result;
+  },
   async launchLocalGame() {
     await ipc_satsArenaLaunchLocalGame.renderer!.trigger({});
   },

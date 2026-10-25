@@ -8,23 +8,32 @@ import {
   ipc_satsArenaCheckServer,
   ipc_satsArenaClearNwcUri,
   ipc_satsArenaGetNwcInfo,
+  ipc_satsArenaGetSandboxInfo,
   ipc_satsArenaGetServerLogs,
   ipc_satsArenaGetServerStatus,
   ipc_satsArenaLaunchLocalGame,
   ipc_satsArenaServerStatusEvent,
   ipc_satsArenaSetNwcUri,
+  ipc_satsArenaSetupSandbox,
   ipc_satsArenaStartServer,
   ipc_satsArenaStopServer,
 } from "./ipc";
 import { SatsArenaNativeGame } from "./native_game_process";
 import { NwcSecretStore } from "./nwc_secret_store";
+import { SandboxWallets } from "./sandbox";
 import { checkHealth, SatsArenaServerProcess } from "./server_process";
 
 const log = electronLog.scope("sats_arena");
 
 export default function setupSatsArenaIpc({ settingsManager }: { settingsManager: SettingsManager }) {
   const secrets = new NwcSecretStore(path.join(app.getPath("userData"), "sats-arena"));
-  const nativeGame = new SatsArenaNativeGame(settingsManager, secrets);
+  const sandbox = new SandboxWallets(path.join(app.getPath("userData"), "sats-arena", "sandbox"));
+  const nativeGame = new SatsArenaNativeGame(settingsManager, secrets, sandbox);
+  ipc_satsArenaGetSandboxInfo.main!.handle(async () => sandbox.info());
+  ipc_satsArenaSetupSandbox.main!.handle(async () => {
+    await sandbox.ensure();
+    return sandbox.info();
+  });
   ipc_satsArenaLaunchLocalGame.main!.handle(async () => {
     await nativeGame.start();
     return {};

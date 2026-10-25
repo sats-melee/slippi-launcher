@@ -10,8 +10,14 @@ import path from "path";
 import { prepareLocalGameProfile } from "./local_game_profile";
 import type { NwcSecretStore } from "./nwc_secret_store";
 import { isValidNwcUri } from "./nwc_secret_store";
+import type { SandboxWallets } from "./sandbox";
 
-type WalletPayload = { version: 1; backend: "fake" | "nwc"; nwc_uri?: string };
+type WalletPayload = {
+  version: 1;
+  backend: "fake" | "sandbox" | "nwc";
+  nwc_uri?: string;
+  sandbox_players?: { nwc_uri: string; address: string }[];
+};
 type NativeSettings = Pick<SettingsSchema, "satsArenaWalletBackend" | "satsArenaSatsPerPercent">;
 
 /** Only the main process calls this; the resulting secret is never returned over IPC. */
@@ -19,17 +25,32 @@ export async function nativeWalletLaunch(
   settings: NativeSettings,
   secrets: Pick<NwcSecretStore, "get">,
   inherited: NodeJS.ProcessEnv,
+  sandbox?: Pick<SandboxWallets, "ensure">,
 ): Promise<{ payload: WalletPayload; env: NodeJS.ProcessEnv }> {
   const uriOverride = inherited.SATS_ARENA_NWC_URI?.trim() || undefined;
   const backendOverride = inherited.SATS_ARENA_WALLET_BACKEND;
-  if (backendOverride !== undefined && backendOverride !== "fake" && backendOverride !== "nwc") {
-    throw new Error("SATS_ARENA_WALLET_BACKEND must be fake or nwc");
+  if (backendOverride !== undefined && !["fake", "sandbox", "nwc"].includes(backendOverride)) {
+    throw new Error("SATS_ARENA_WALLET_BACKEND must be fake or nwc or sandbox");
+  }
+  if ((backendOverride === "sandbox" || settings.satsArenaWalletBackend === "sandbox") && uriOverride) {
+    throw new Error("Clear the development NWC override before using Sandbox.");
   }
   if (backendOverride === "fake" && uriOverride) {
     throw new Error("The development NWC connection conflicts with the explicit fake wallet setting");
   }
-  const backend = backendOverride ?? (uriOverride ? "nwc" : settings.satsArenaWalletBackend);
+  const backend = (backendOverride ??
+    (uriOverride ? "nwc" : settings.satsArenaWalletBackend)) as WalletPayload["backend"];
   const payload: WalletPayload = { version: 1, backend };
+  if (backend === "sandbox") {
+    if (!sandbox) {
+      throw new Error("Sandbox setup is not available.");
+    }
+    const fixture = await sandbox.ensure();
+    payload.nwc_uri = fixture.wallets[0].uri;
+    payload.sandbox_players = fixture.wallets
+      .slice(1)
+      .map((wallet) => ({ nwc_uri: wallet.uri, address: wallet.address }));
+  }
   if (backend === "nwc") {
     const uri = uriOverride ?? (await secrets.get());
     if (!uri) {
@@ -41,6 +62,8 @@ export async function nativeWalletLaunch(
     payload.nwc_uri = uri;
   }
   const env: NodeJS.ProcessEnv = { ...inherited, SATS_ARENA_WALLET_CONFIG: "stdin" };
+  // Electron's AppRun disables AT-SPI for itself; native GTK controls need their own bridge.
+  delete env.NO_AT_BRIDGE;
   // Never reuse a descriptor or disabled payment-gate flag from another launcher.
   delete env.SATS_ARENA_WALLET_CONFIG_FD;
   delete env.SATS_ARENA_FAKE_LOCAL;
@@ -59,7 +82,11 @@ export class SatsArenaNativeGame {
   private child: ChildProcess | null = null;
   private starting = false;
 
-  constructor(private readonly settingsManager: SettingsManager, private readonly secrets: NwcSecretStore) {}
+  constructor(
+    private readonly settingsManager: SettingsManager,
+    private readonly secrets: NwcSecretStore,
+    private readonly sandbox?: SandboxWallets,
+  ) {}
 
   async start(): Promise<void> {
     if (this.child || this.starting) {
@@ -72,7 +99,7 @@ export class SatsArenaNativeGame {
         throw new Error("Choose an existing Melee ISO in Game settings before playing");
       }
       const binary = await findNativeGameBinary(settings.satsArenaDolphinBinaryPath);
-      const launch = await nativeWalletLaunch(settings, this.secrets, { ...sanitizeAppImageEnv() });
+      const launch = await nativeWalletLaunch(settings, this.secrets, { ...sanitizeAppImageEnv() }, this.sandbox);
       const userPath = path.join(app.getPath("userData"), "sats-arena", "dolphin-user");
       await mkdir(userPath, { recursive: true, mode: 0o700 });
       const configRoot = app.getPath("appData");

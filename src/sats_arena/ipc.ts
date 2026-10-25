@@ -1,7 +1,15 @@
 import type { EmptyPayload } from "utils/ipc";
 import { _, makeEndpoint } from "utils/ipc";
 
+import type { SandboxInfo } from "./sandbox";
 import type { SatsArenaNwcInfo, SatsArenaServerStatus } from "./types";
+
+export const ipc_satsArenaGetSandboxInfo = makeEndpoint.main(
+  "satsArena_getSandboxInfo",
+  <EmptyPayload>_,
+  <SandboxInfo>_,
+);
+export const ipc_satsArenaSetupSandbox = makeEndpoint.main("satsArena_setupSandbox", <EmptyPayload>_, <SandboxInfo>_);
 
 export const ipc_satsArenaGetServerStatus = makeEndpoint.main(
   "satsArena_getServerStatus",

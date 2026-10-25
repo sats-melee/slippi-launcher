@@ -15,6 +15,35 @@ vi.mock("electron", () => ({ app: { getPath: vi.fn(), getAppPath: vi.fn(), isPac
 const uri = "nostr+walletconnect://fixture-wallet?secret=fixture-private-key";
 
 describe("native wallet configuration", () => {
+  it("uses isolated sandbox credentials on stdin and never unlocks the live wallet", async () => {
+    const secrets = {
+      get: vi.fn(async () => {
+        throw new Error("live secret must stay locked");
+      }),
+    };
+    const sandbox = {
+      ensure: vi.fn(async () => ({
+        version: 1 as const,
+        wallets: Array.from({ length: 5 }, (_, i) => ({
+          uri: `nostr+walletconnect://sandbox-${i}`,
+          address: `nwc${i}@getalby.com`,
+        })),
+      })),
+    };
+    const settings = { satsArenaWalletBackend: "sandbox" as const, satsArenaSatsPerPercent: 1 };
+    const launch = await nativeWalletLaunch(settings, secrets, {}, sandbox);
+    expect(launch.payload.backend).toBe("sandbox");
+    expect(launch.payload.sandbox_players).toHaveLength(4);
+    expect(launch.payload.nwc_uri).toBe("nostr+walletconnect://sandbox-0");
+    expect(JSON.stringify(launch.env)).not.toContain("sandbox-");
+    expect(secrets.get).not.toHaveBeenCalled();
+    await expect(nativeWalletLaunch(settings, secrets, { SATS_ARENA_NWC_URI: uri }, sandbox)).rejects.toThrow(
+      "Clear the development NWC override",
+    );
+    sandbox.ensure.mockRejectedValueOnce(new Error("sandbox offline"));
+    await expect(nativeWalletLaunch(settings, secrets, {}, sandbox)).rejects.toThrow("sandbox offline");
+    expect(secrets.get).not.toHaveBeenCalled();
+  });
   const settings = { satsArenaWalletBackend: "nwc", satsArenaSatsPerPercent: 1 } as const;
   it("reads the saved NWC in main and keeps it out of the production environment", async () => {
     const secrets = { get: vi.fn(async () => uri) };

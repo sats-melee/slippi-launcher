@@ -51,12 +51,49 @@ const WalletSettings = React.memo(() => {
     <div>
       <SettingItem name={Messages.wallet()} description={Messages.walletDescription()}>
         <RadioGroup value={walletBackend} onChange={(_event, value) => setWalletBackend(value as typeof walletBackend)}>
-          <FormControlLabel value="fake" label={Messages.walletFake()} control={<Radio />} />
+          <FormControlLabel value="sandbox" label={Messages.walletSandbox()} control={<Radio />} />
           <FormControlLabel value="nwc" label={Messages.walletNwc()} control={<Radio />} />
         </RadioGroup>
       </SettingItem>
+      <Typography variant="caption">{Messages.walletRestart()}</Typography>
+      {walletBackend === "sandbox" && <SandboxSettings />}
       {walletBackend === "nwc" && <NwcSettings />}
     </div>
+  );
+});
+
+const SandboxSettings = React.memo(() => {
+  const { satsArenaService } = useServices();
+  const { showError } = useToasts();
+  const [info, setInfo] = React.useState<{ ready: boolean; addresses: string[] } | null>(null);
+  const [preparing, setPreparing] = React.useState(false);
+  React.useEffect(() => {
+    satsArenaService.getSandboxInfo().then(setInfo).catch(showError);
+  }, [satsArenaService, showError]);
+  const prepare = async () => {
+    setPreparing(true);
+    try {
+      setInfo(await satsArenaService.setupSandbox());
+    } catch (error) {
+      showError(error);
+    } finally {
+      setPreparing(false);
+    }
+  };
+  return (
+    <SettingItem name={Messages.sandboxTitle()} description={Messages.sandboxDescription()}>
+      {info?.addresses.map((address, index) => (
+        <Typography key={address}>
+          Player {index + 1}: {address}
+        </Typography>
+      ))}
+      {!info?.ready && (
+        <Button onClick={prepare} disabled={preparing}>
+          {preparing ? Messages.sandboxPreparing() : Messages.sandboxPrepare()}
+        </Button>
+      )}
+      {info?.ready && <Typography>{Messages.sandboxReady()}</Typography>}
+    </SettingItem>
   );
 });
 

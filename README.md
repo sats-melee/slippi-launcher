@@ -12,7 +12,9 @@ This fork also includes a [Sats Arena server setup preview](docs/sats-arena.md)
 under **Settings → Sats Arena**, with Connect and local Host controls.
 
 For this workspace's production launcher, run **`make app`**. It builds,
-packages, installs, and opens the launcher. See [release setup](docs/release.md).
+packages, installs, and opens the launcher. Use **`make sandbox`** for prefilled
+Alby test wallets, or **`make sandbox-agent`** for an isolated game with four pipe
+controllers. See [Sandbox development](docs/sandbox.md) and [release setup](docs/release.md).
 
 ## Build Instructions
 

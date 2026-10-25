@@ -29,7 +29,9 @@ the development launcher with hot reload. Build logs are in `.release/`;
 launcher output starts fresh in `~/.local/state/sats-arena/launcher.log`
 (or `$XDG_STATE_HOME/sats-arena/launcher.log`).
 
-The saved wallet choice, NWC credential, and other settings are preserved.
+For payment development, use `make sandbox` or `make sandbox-agent`; see
+[sandbox.md](sandbox.md) for reusable test wallets and controller automation.
+The saved live NWC credential and other settings are preserved.
 Configure NWC in the launcher as described in [native-wallet.md](native-wallet.md).
 The local fork disables automatic installation of upstream launcher updates. Updating this build means running `make app` again.
 

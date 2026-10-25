@@ -64,6 +64,9 @@ export class SettingsManager extends EventEmitter {
     super();
     this.setMutex = new Mutex();
     const restoredSettings = electronSettings.getSync() as Partial<AppSettings>;
+    if (restoredSettings.settings?.satsArenaWalletBackend === "fake") {
+      restoredSettings.settings.satsArenaWalletBackend = "sandbox";
+    }
 
     // If the ISO file no longer exists, don't restore it
     if (restoredSettings.settings?.isoPath) {

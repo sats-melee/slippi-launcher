@@ -46,7 +46,7 @@ export const defaultAppSettings: AppSettings = {
     satsArenaHostPort: 8737,
     satsArenaHostAllowRemote: false,
     satsArenaInviteCode: "",
-    satsArenaWalletBackend: "fake",
+    satsArenaWalletBackend: "sandbox",
     satsArenaSatsPerPercent: 1,
     satsArenaWinSats: 100,
     satsArenaMaxDepositSats: 100000,

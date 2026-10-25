@@ -5,7 +5,9 @@ Choose your Melee ISO, then press **LOCAL** in the launcher header or
 directly with the Arena payment panel. **ONLINE** retains the existing Slippi
 netplay launch and its in-game login. The Wallet setting applies to local Arena,
 independently of the separate server-preview mode.
-Select Fake wallet for simulated funding, or Nostr Wallet Connect and save the
+Use **Sandbox** for development: five reusable Alby NWC test wallets and four
+prefilled player addresses are prepared automatically. See [sandbox.md](sandbox.md)
+for the agent workflow. For real payments, select **Live Lightning** and save the
 connection through the existing protected secret store. The renderer only gets
 saved/encrypted status; it cannot read a previously saved connection string.
 
