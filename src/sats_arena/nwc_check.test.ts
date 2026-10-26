@@ -11,6 +11,9 @@ afterEach(async () => {
   await Promise.all(folders.splice(0).map((folder) => rm(folder, { recursive: true, force: true })));
 });
 const uri = "nostr+walletconnect://private-fixture?secret=must-not-leak";
+// The fixture spawns a shebang script, which Windows cannot execute; the
+// stdin/stdout protocol is platform-independent and covered on POSIX.
+const spawnable = process.platform !== "win32" ? it : it.skip;
 async function fixture(body: string) {
   const folder = await mkdtemp(path.join(tmpdir(), "wallet-check-"));
   folders.push(folder);
@@ -20,7 +23,7 @@ async function fixture(body: string) {
   return binary;
 }
 
-it("hands credentials over stdin and explicitly opts into invoice creation", async () => {
+spawnable("hands credentials over stdin and explicitly opts into invoice creation", async () => {
   const binary = await fixture(`config=json.load(sys.stdin)
 assert config==${JSON.stringify({ version: 1, backend: "nwc", nwc_uri: uri })}
 assert sys.argv[1:]==['--invoice']
@@ -33,14 +36,14 @@ print(json.dumps(dict(ok=True,message='Invoice created',invoice='lnbc1fixture',a
   expect(JSON.stringify(result)).not.toContain(uri);
 });
 
-it("a connection check does not request or return an invoice", async () => {
+spawnable("a connection check does not request or return an invoice", async () => {
   const binary = await fixture(
     "json.load(sys.stdin)\nassert len(sys.argv)==1\nprint(json.dumps(dict(ok=True,message='Connected',invoice='should-not-return')))\n",
   );
   expect(await runWalletCheck(binary, uri, false)).toEqual({ ok: true, message: "Connected" });
 });
 
-it("rejects leaked credentials and incomplete invoice results", async () => {
+spawnable("rejects leaked credentials and incomplete invoice results", async () => {
   const echo = await fixture("c=json.load(sys.stdin)\nprint(json.dumps(dict(ok=False,message=c['nwc_uri'])))\n");
   expect(await runWalletCheck(echo, uri, false)).toEqual({
     ok: false,

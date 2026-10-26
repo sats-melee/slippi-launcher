@@ -32,7 +32,10 @@ it("creates five private wallets once, including concurrent callers, and returns
   const info = await second.info();
   expect(info).toEqual({ ready: true, addresses: [1, 2, 3, 4].map((n) => `nwc${n}@getalby.com`) });
   expect(JSON.stringify(info)).not.toContain("secret");
-  expect((await stat(path.join(folder, "wallets.json"))).mode & 0o777).toBe(0o600);
+  // POSIX mode bits; Windows reports 0o666 regardless of the requested mode.
+  if (process.platform !== "win32") {
+    expect((await stat(path.join(folder, "wallets.json"))).mode & 0o777).toBe(0o600);
+  }
   await new SandboxWallets(folder, request as typeof fetch).ensure();
   expect(request).toHaveBeenCalledTimes(5);
 });
