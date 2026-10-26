@@ -26,6 +26,16 @@ jobs:
         node-version: [24.x]
         python: ["3.11"]
         os: [ubuntu-latest, windows-2022, macOS-latest]
+        include:
+          - os: ubuntu-latest
+            arena_artifact: linux-arena
+            server_artifact: sats-arena-server-linux-x86_64
+          - os: windows-2022
+            arena_artifact: windows-netplay
+            server_artifact: sats-arena-server-windows-x86_64
+          - os: macOS-latest
+            arena_artifact: macOS-netplay
+            server_artifact: sats-arena-server-macos-arm64
 
     steps:
       - name: Use Python ${{ matrix.python }}
@@ -137,6 +147,59 @@ jobs:
         env:
           CERTIFICATE_MACOS_APPLICATION: ${{ secrets.CERTIFICATE_MACOS_APPLICATION }}
           CERTIFICATE_MACOS_PASSWORD: ${{ secrets.CERTIFICATE_MACOS_PASSWORD }}
+
+      # The packaged launcher embeds the native Arena game (built in the
+      # Ishiiruka repo) and the arena server (from the sats-arena repo).
+      - name: Fetch native Arena runtime
+        uses: dawidd6/action-download-artifact@v21
+        with:
+          github_token: ${{ secrets.CROSS_REPO_TOKEN }}
+          repo: sats-melee/Ishiiruka
+          workflow: pr-build.yml
+          branch: ci/arena-builds
+          workflow_conclusion: success
+          name: ${{ matrix.arena_artifact }}
+          path: native-dist
+
+      - name: Fetch sats-arena server
+        uses: dawidd6/action-download-artifact@v21
+        with:
+          github_token: ${{ secrets.CROSS_REPO_TOKEN }}
+          repo: sats-melee/sats-arena
+          workflow: ci.yml
+          branch: main
+          workflow_conclusion: success
+          name: ${{ matrix.server_artifact }}
+          path: server-dist
+
+      - name: Stage native Arena runtime (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          chmod +x native-dist/Sats-Arena-x86_64.AppImage
+          (cd native-dist && ./Sats-Arena-x86_64.AppImage --appimage-extract >/dev/null)
+          python3 scripts/stage-native.py --appimage-dir native-dist/squashfs-root
+          install -m 0755 server-dist/sats-arena-server assets/include/sats-arena/sats-arena-server
+
+      - name: Stage native Arena runtime (Windows)
+        if: matrix.os == 'windows-2022'
+        shell: bash
+        run: |
+          mkdir -p assets/include/sats-arena
+          7z x -y native-dist/*.zip -o"$RUNNER_TEMP/arena-win" >/dev/null
+          cp "$RUNNER_TEMP/arena-win/Slippi Dolphin.exe" assets/include/sats-arena/dolphin-emu.exe
+          cp "$RUNNER_TEMP/arena-win/"*.dll assets/include/sats-arena/
+          cp -r "$RUNNER_TEMP/arena-win/Sys" assets/include/sats-arena/Sys
+          cp server-dist/sats-arena-server.exe assets/include/sats-arena/
+
+      - name: Stage native Arena runtime (macOS)
+        if: matrix.os == 'macOS-latest'
+        run: |
+          hdiutil attach -nobrowse -mountpoint /tmp/arena-dmg native-dist/*.dmg
+          mkdir -p assets/include/sats-arena
+          cp -R "/tmp/arena-dmg/Slippi Dolphin.app" assets/include/sats-arena/
+          hdiutil detach /tmp/arena-dmg
+          cp server-dist/sats-arena-server assets/include/sats-arena/
+          chmod +x assets/include/sats-arena/sats-arena-server
 
       - name: Build App
         shell: bash

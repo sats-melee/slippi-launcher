@@ -184,7 +184,12 @@ export async function findNativeGameBinary(configured: string | null): Promise<s
   }
   const name = process.platform === "win32" ? "dolphin-emu.exe" : "dolphin-emu";
   const assets = app.isPackaged ? path.join(process.resourcesPath, "assets") : path.join(app.getAppPath(), "assets");
-  const candidates = [path.join(assets, "include", "sats-arena", name)];
+  const includeDir = path.join(assets, "include", "sats-arena");
+  const candidates = [path.join(includeDir, name)];
+  if (process.platform === "darwin") {
+    // Packaged macOS builds ship the signed app bundle; its dylibs only resolve inside it.
+    candidates.unshift(path.join(includeDir, "Slippi Dolphin.app", "Contents", "MacOS", "Slippi Dolphin"));
+  }
   if (!app.isPackaged) {
     let folder = app.getAppPath();
     for (let i = 0; i < 5; i++) {

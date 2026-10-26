@@ -47,14 +47,9 @@ def stage(native_root: Path, output: Path) -> dict:
     for name, path in sources.items():
         if not (path.is_dir() if name == "Sys" else path.is_file()):
             raise ValueError(f"Invalid native build resource: {path}")
-    template = (SCRIPT_DIR / "native-release-wrapper.sh").read_text()
-    if template.count(HASH_PLACEHOLDER) != 1:
-        raise ValueError("The native wrapper must contain exactly one bundle hash placeholder")
-
     output.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=".sats-arena-stage-", dir=output.parent) as scratch:
-        scratch = Path(scratch)
-        payload = scratch / "native"
+    with tempfile.TemporaryDirectory(prefix=".sats-arena-collect-", dir=output.parent) as collect:
+        payload = Path(collect) / "native"
         (payload / "lib").mkdir(parents=True)
         for name, source in sources.items():
             destination = payload / name
@@ -62,6 +57,45 @@ def stage(native_root: Path, output: Path) -> dict:
                 shutil.copytree(source, destination, symlinks=False)
             else:
                 shutil.copy2(source, destination)
+        return install_payload(payload, output, standalone=False)
+
+
+def stage_appimage(squashfs_root: Path, output: Path) -> dict:
+    """Stage from an extracted AppImage (squashfs-root); bundles every dependency."""
+    squashfs_root = squashfs_root.expanduser().resolve(strict=True)
+    output = output.expanduser().absolute()
+    bin_dir = squashfs_root / "usr" / "bin"
+    lib_dir = squashfs_root / "usr" / "lib"
+    for required in (bin_dir / "dolphin-emu", bin_dir / "sats-arena-wallet-check", bin_dir / "Sys"):
+        if not required.is_dir() if required.name == "Sys" else not required.is_file():
+            raise ValueError(f"Invalid AppImage resource: {required}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".sats-arena-collect-", dir=output.parent) as collect:
+        payload = Path(collect) / "native"
+        (payload / "lib").mkdir(parents=True)
+        shutil.copy2(bin_dir / "dolphin-emu", payload / "dolphin-emu")
+        shutil.copy2(bin_dir / "sats-arena-wallet-check", payload / "sats-arena-wallet-check")
+        shutil.copytree(bin_dir / "Sys", payload / "Sys", symlinks=False)
+        alsa = bin_dir / "alsa-pulse.conf"
+        if alsa.is_file():
+            shutil.copy2(alsa, payload / "alsa-pulse.conf")
+        else:
+            raise ValueError(f"Invalid AppImage resource: {alsa}")
+        for library in lib_dir.glob("*.so*"):
+            shutil.copy2(library, payload / "lib" / library.name)
+        return install_payload(payload, output, standalone=True)
+
+
+def install_payload(payload: Path, output: Path, standalone: bool) -> dict:
+    template_name = "native-release-wrapper-standalone.sh" if standalone else "native-release-wrapper.sh"
+    template = (SCRIPT_DIR / template_name).read_text()
+    if template.count(HASH_PLACEHOLDER) != 1:
+        raise ValueError("The native wrapper must contain exactly one bundle hash placeholder")
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=".sats-arena-stage-", dir=output.parent) as scratch:
+        scratch = Path(scratch)
+        payload = payload.rename(scratch / "native")
         (payload / "dolphin-emu").chmod(0o755)
         (payload / "sats-arena-wallet-check").chmod(0o755)
         digest = bundle_hash(payload)
@@ -94,11 +128,16 @@ def stage(native_root: Path, output: Path) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--native-root", required=True, type=Path, help="Ishiiruka checkout containing build-arena")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--native-root", type=Path, help="Ishiiruka checkout containing build-arena")
+    source.add_argument("--appimage-dir", type=Path, help="Extracted AppImage root (squashfs-root) from a CI build")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help="Generated release resource directory")
     args = parser.parse_args()
     try:
-        result = stage(args.native_root, args.output)
+        if args.appimage_dir is not None:
+            result = stage_appimage(args.appimage_dir, args.output)
+        else:
+            result = stage(args.native_root, args.output)
     except (OSError, ValueError, shutil.Error) as error:
         parser.exit(1, f"Native staging failed: {error}\n")
     print(json.dumps(result))
