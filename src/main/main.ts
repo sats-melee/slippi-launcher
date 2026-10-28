@@ -15,7 +15,7 @@ import { DolphinLaunchType } from "@dolphin/types";
 import { ipc_statsPageRequestedEvent } from "@replays/ipc";
 import { ipc_openSettingsModalEvent } from "@settings/ipc";
 import type CrossProcessExports from "electron";
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, dialog, shell } from "electron";
 import log from "electron-log";
 import get from "lodash/get";
 import last from "lodash/last";
@@ -51,7 +51,14 @@ if (!lockObtained) {
 }
 
 const flags = getConfigFlags();
-const { dolphinManager, appUpdater, browserWindowManager } = installModules(flags);
+const { dolphinManager, appUpdater, browserWindowManager, launchLocalGame } = installModules(flags);
+const openLocalFromSteam = () =>
+  launchLocalGame().catch(() => {
+    dialog.showErrorBox(
+      "Could not open local Arena",
+      "Close any existing local game and check your Melee ISO in Game settings, then try Local again.",
+    );
+  });
 
 if (isDevelopment) {
   require("electron-debug")();
@@ -293,6 +300,10 @@ app.on("open-file", (_, aUrl) => {
 });
 
 app.on("second-instance", (_, argv) => {
+  if (argv.includes("--local-arena")) {
+    void openLocalFromSteam();
+    return;
+  }
   log.info("Second instance detected...");
   log.info(argv);
 
@@ -338,6 +349,11 @@ const main = async () => {
 
   await appUpdater.verifyPendingUpdate();
   await createWindow();
+
+  if (process.argv.includes("--local-arena")) {
+    await openLocalFromSteam();
+    return;
+  }
 
   // Handle Slippi URI if provided
   const argURI = get(process.argv, 1);

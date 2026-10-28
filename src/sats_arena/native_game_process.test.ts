@@ -175,7 +175,9 @@ describe.skipIf(process.platform === "win32")("native game private stdin handoff
     await writeFile(iso, "synthetic fixture");
     const quote = (s: string) => `'${s.replace(/'/g, "'\\''")}'`;
     const fixture = path.join(__dirname, "fixtures/native_game.cjs");
-    await writeFile(binary, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(fixture)} "$@"\n`, { mode: 0o700 });
+    await writeFile(binary, `#!/bin/sh\nexec ${quote(process.execPath)} ${quote(fixture)} "$@"\n`, {
+      mode: 0o700,
+    });
     settings = {
       isoPath: iso,
       satsArenaDolphinBinaryPath: binary,
@@ -190,6 +192,42 @@ describe.skipIf(process.platform === "win32")("native game private stdin handoff
   afterEach(async () => {
     vi.unstubAllEnvs();
     await rm(folder, { recursive: true, force: true });
+  });
+  it("opens the Local profile settings without an ISO or a wallet handoff", async () => {
+    settings.isoPath = null;
+    const get = vi.fn(async () => {
+      throw new Error("The live wallet must stay locked");
+    });
+    vi.stubEnv("SATS_ARENA_NWC_URI", uri);
+    const game = new SatsArenaNativeGame(
+      { get: () => ({ settings }) } as SettingsManager,
+      { get } as unknown as NwcSecretStore,
+    );
+    await game.configure();
+    let report:
+      | {
+          args: string[];
+          payload: unknown;
+          lines: number;
+          transport?: string;
+          uriInEnvironment: string | null;
+        }
+      | undefined;
+    for (let i = 0; i < 100; ++i) {
+      try {
+        report = JSON.parse(await readFile(path.join(folder, "report.json"), "utf8"));
+        break;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    }
+    expect(report).toBeDefined();
+    expect(report!.args).toEqual(["-u", path.join(folder, "sats-arena", "dolphin-user")]);
+    expect(report!.payload).toBeNull();
+    expect(report!.lines).toBe(0);
+    expect(report!.transport).toBeUndefined();
+    expect(report!.uriInEnvironment).toBeNull();
+    expect(get).not.toHaveBeenCalled();
   });
   it("spawns a child that receives exactly one config line, with no URI in args or production env", async () => {
     const game = new SatsArenaNativeGame(

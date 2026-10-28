@@ -3,6 +3,7 @@ import {
   ipc_satsArenaCheckNwc,
   ipc_satsArenaCheckServer,
   ipc_satsArenaClearNwcUri,
+  ipc_satsArenaConfigureLocalGame,
   ipc_satsArenaGetNwcInfo,
   ipc_satsArenaGetSandboxInfo,
   ipc_satsArenaGetServerLogs,
@@ -28,6 +29,9 @@ const satsArenaApi: SatsArenaService = {
   },
   async launchLocalGame() {
     await ipc_satsArenaLaunchLocalGame.renderer!.trigger({});
+  },
+  async configureLocalGame() {
+    await ipc_satsArenaConfigureLocalGame.renderer!.trigger({});
   },
   async getServerStatus() {
     const { result } = await ipc_satsArenaGetServerStatus.renderer!.trigger({});
@@ -58,7 +62,9 @@ const satsArenaApi: SatsArenaService = {
     return result;
   },
   async checkServer(url: string) {
-    const { result } = await ipc_satsArenaCheckServer.renderer!.trigger({ url });
+    const { result } = await ipc_satsArenaCheckServer.renderer!.trigger({
+      url,
+    });
     return result;
   },
   onServerStatusChange(handle) {

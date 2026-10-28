@@ -135,6 +135,11 @@ def install(appimage, workspace, layout):
     wrapper = (
         "#!/usr/bin/env bash\nset -euo pipefail\n"
         "unset ELECTRON_RUN_AS_NODE NODE_ENV DEBUG_PROD\n"
+        "# Steam's injected overlay libraries break Electron's sandbox startup.\n"
+        'if [[ -n "${SteamAppId:-}" ]]; then\n'
+        "  unset LD_PRELOAD\n"
+        '  set -- --local-arena "$@"\n'
+        "fi\n"
         "export APPIMAGE_EXTRACT_AND_RUN=1\n"
         "umask 077\n"
         'state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/sats-arena"\n'

@@ -8,6 +8,7 @@ import {
   ipc_satsArenaCheckNwc,
   ipc_satsArenaCheckServer,
   ipc_satsArenaClearNwcUri,
+  ipc_satsArenaConfigureLocalGame,
   ipc_satsArenaGetNwcInfo,
   ipc_satsArenaGetSandboxInfo,
   ipc_satsArenaGetServerLogs,
@@ -41,6 +42,10 @@ export default function setupSatsArenaIpc({ settingsManager }: { settingsManager
     await nativeGame.start();
     return {};
   });
+  ipc_satsArenaConfigureLocalGame.main!.handle(async () => {
+    await nativeGame.configure();
+    return {};
+  });
   const server = new SatsArenaServerProcess(settingsManager, secrets, (status) => {
     ipc_satsArenaServerStatusEvent.main!.trigger({ status }).catch(log.error);
   });
@@ -53,12 +58,17 @@ export default function setupSatsArenaIpc({ settingsManager }: { settingsManager
     return server.start();
   });
   ipc_satsArenaStopServer.main!.handle(async () => server.stop());
-  ipc_satsArenaGetServerLogs.main!.handle(async () => ({ logs: server.getLogs() }));
+  ipc_satsArenaGetServerLogs.main!.handle(async () => ({
+    logs: server.getLogs(),
+  }));
   ipc_satsArenaGetNwcInfo.main!.handle(async () => secrets.info());
   let checking: Promise<SatsArenaNwcCheck> | null = null;
   ipc_satsArenaCheckNwc.main!.handle(async ({ createInvoice }) => {
     if (checking) {
-      return { ok: false, message: "A wallet check is already running. Try again when it finishes." };
+      return {
+        ok: false,
+        message: "A wallet check is already running. Try again when it finishes.",
+      };
     }
     checking = checkSavedNwc(secrets, settingsManager.get().settings.satsArenaDolphinBinaryPath, createInvoice);
     try {
@@ -93,4 +103,5 @@ export default function setupSatsArenaIpc({ settingsManager }: { settingsManager
       }
     }
   });
+  return { launchLocalGame: () => nativeGame.start() };
 }

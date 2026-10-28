@@ -1,4 +1,5 @@
 import { sanitizeAppImageEnv } from "@dolphin/app_image_env/app_image_env";
+import { withoutArenaWalletEnv } from "@dolphin/arena_wallet_env";
 import type { SettingsManager } from "@settings/settings_manager";
 import type { SettingsSchema } from "@settings/types";
 import type { ChildProcess } from "child_process";
@@ -134,17 +135,29 @@ export class SatsArenaNativeGame {
   ) {}
 
   async start(): Promise<void> {
+    return this.launch(false);
+  }
+
+  async configure(): Promise<void> {
+    return this.launch(true);
+  }
+
+  private async launch(configurationOnly: boolean): Promise<void> {
     if (this.child || this.starting) {
-      throw new Error("A local Arena game is already open");
+      throw new Error("Close the local Arena game or its settings window first");
     }
     this.starting = true;
     try {
       const settings = this.settingsManager.get().settings;
-      if (!settings.isoPath || !(await isFile(settings.isoPath))) {
+      if (!configurationOnly && (!settings.isoPath || !(await isFile(settings.isoPath)))) {
         throw new Error("Choose an existing Melee ISO in Game settings before playing");
       }
       const binary = await findNativeGameBinary(settings.satsArenaDolphinBinaryPath);
-      const launch = await nativeWalletLaunch(settings, this.secrets, { ...sanitizeAppImageEnv() }, this.sandbox);
+      const launch = configurationOnly
+        ? null
+        : await nativeWalletLaunch(settings, this.secrets, { ...sanitizeAppImageEnv() }, this.sandbox);
+      const env = launch?.env ?? withoutArenaWalletEnv(sanitizeAppImageEnv());
+      delete env.NO_AT_BRIDGE;
       const userPath = path.join(app.getPath("userData"), "sats-arena", "dolphin-user");
       await mkdir(userPath, { recursive: true, mode: 0o700 });
       const configRoot = app.getPath("appData");
@@ -152,9 +165,9 @@ export class SatsArenaNativeGame {
         path.join(configRoot, "SatsArenaDolphin"),
         path.join(configRoot, "SlippiOnline"),
       ]);
-      delete launch.env.NO_AT_BRIDGE;
-      const child = spawn(binary, ["-b", "-e", settings.isoPath, "-u", userPath], {
-        env: launch.env,
+      const params = configurationOnly ? ["-u", userPath] : ["-b", "-e", settings.isoPath!, "-u", userPath];
+      const child = spawn(binary, params, {
+        env,
         // Dolphin does not read stdin for gameplay. A closed private pipe works on all platforms.
         stdio: ["pipe", "ignore", "ignore"],
         windowsHide: true,
@@ -170,6 +183,11 @@ export class SatsArenaNativeGame {
       await new Promise<void>((resolve, reject) => {
         child.once("error", () => reject(new Error("Could not launch the local Arena game")));
         child.once("spawn", () => {
+          if (!launch) {
+            child.stdin?.end();
+            resolve();
+            return;
+          }
           const input = child.stdin;
           if (!input) {
             child.kill();

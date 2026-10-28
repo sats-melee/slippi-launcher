@@ -11,6 +11,25 @@ for the agent workflow. For real payments, select **Live Lightning** and save th
 connection through the existing protected secret store. The renderer only gets
 saved/encrypted status; it cannot read a previously saved connection string.
 
+When a player pays from the host's own Alby wallet (including Alby Go), invoice
+lookup can return the outgoing half of that self-payment. Arena confirms the
+matching incoming transaction before admitting the player. This recovery needs
+`list_transactions` permission on the host NWC connection; the payment panel
+reports missing access without asking for another payment. Ordinary payments
+from another wallet do not require transaction-history access.
+
+For controllers, graphics, and hotkeys, open **Settings → Dolphin → Configure
+Local Dolphin**. This opens the same native program and isolated profile as
+LOCAL, without booting an ISO or unlocking a wallet. Close the local game before
+configuring it, then close its settings window before pressing LOCAL again.
+The online Dolphin settings below it apply to the separate ONLINE instance.
+
+For the local Linux installation, add `~/.local/bin/sats-arena` to Steam as a
+non-Steam shortcut. The installed wrapper removes `LD_PRELOAD` when Steam sets
+`SteamAppId`: Steam's injected overlay libraries otherwise crash Electron's
+sandbox during startup. This keeps Chromium sandboxing enabled and preserves
+the same saved settings and wallet profile used by a desktop launch.
+
 The local Play action launches the bundled Arena Dolphin or discovers the
 neighboring `Ishiiruka/build-arena/Binaries/dolphin-emu` development build.
 On Linux, an existing sibling build prefers `Ishiiruka/Tools/arena/launch-native.sh`
@@ -77,3 +96,8 @@ forces a fake wallet, and never unlocks the saved NWC secret. It waits for nativ
 state under a temporary isolated Dolphin profile and checks no entries are paid.
 Cleanup terminates only processes bearing that exact temporary profile. Without
 `ARENA_NATIVE_E2E_ISO` it is skipped; regular tests need no ISO or display.
+
+Steam launches through the installed `sats-arena` wrapper. When Steam supplies
+`SteamAppId`, the wrapper adds `--local-arena`: the launcher opens Local
+automatically and uses the local VS character-select profile with all four
+controller ports. Ordinary desktop launches keep the launcher home available.

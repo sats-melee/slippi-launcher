@@ -90,6 +90,20 @@ class ReleaseInstallTests(unittest.TestCase):
         self.assertEqual(settings["satsArenaDolphinBinaryPath"], str(binary))
         self.assertNotIn("satsArenaWalletBackend", settings)
 
+    def test_steam_launch_preserves_tracking_without_injected_overlay(self):
+        installer.install(self.appimage, self.workspace, self.layout)
+        self.layout.appimage.write_text("#!/usr/bin/env python3\nimport json, os\nprint(json.dumps([os.getenv(k) for k in ('LD_PRELOAD', 'SteamAppId', 'SteamGameId')]))\n")
+        state = self.root / "steam-state"
+        env = dict(os.environ, HOME=str(self.home), XDG_STATE_HOME=str(state),
+                   LD_PRELOAD="libc.so.6", SteamAppId="2322420749", SteamGameId="9974721164540379136")
+        subprocess.run([self.layout.command], env=env, check=True)
+        log = state / "sats-arena/launcher.log"
+        self.assertEqual(json.loads(log.read_text()), [None, "2322420749", "9974721164540379136"])
+        del env["SteamAppId"]
+        del env["SteamGameId"]
+        subprocess.run([self.layout.command], env=env, check=True)
+        self.assertEqual(json.loads(log.read_text()), ["libc.so.6", None, None])
+
     def test_profile_detection_and_old_workspace_override(self):
         iso = self.disc(self.root / "existing disc with spaces.iso")
         config = self.workspace / "dolphin-controller-mcp/.runtime/config/SatsArenaDolphin/Config/Dolphin.ini"

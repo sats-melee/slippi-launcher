@@ -8,7 +8,7 @@ process.stdin.on("end", () => {
     args: process.argv.slice(2),
     transport: process.env.SATS_ARENA_WALLET_CONFIG,
     uriInEnvironment: process.env.SATS_ARENA_NWC_URI ?? null,
-    payload: JSON.parse(input.trim()),
-    lines: input.trim().split("\n").length,
+    payload: input.trim() ? JSON.parse(input.trim()) : null,
+    lines: input.trim() ? input.trim().split("\n").length : 0,
   }), { mode: 0o600 });
 });

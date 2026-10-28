@@ -23,8 +23,8 @@ export function installModules(flags: ConfigFlags) {
   setupSettingsIpc({ settingsManager, dolphinManager });
   setupConsoleIpc({ dolphinManager });
   setupRemoteIpc({ dolphinManager, settingsManager, getSpectateController });
-  setupSatsArenaIpc({ settingsManager });
+  const { launchLocalGame } = setupSatsArenaIpc({ settingsManager });
   const browserWindowManager = new BrowserWindowManager();
   setupMainIpc({ dolphinManager, settingsManager, flags, browserWindowManager, appUpdater });
-  return { dolphinManager, settingsManager, browserWindowManager, appUpdater };
+  return { dolphinManager, settingsManager, browserWindowManager, appUpdater, launchLocalGame };
 }
