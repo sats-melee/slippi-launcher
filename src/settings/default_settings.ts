@@ -50,6 +50,8 @@ export const defaultAppSettings: AppSettings = {
     satsArenaEntrySats: 400,
     satsArenaSurchargePercent: 2,
     satsArenaBatchSeconds: 5,
+    satsArenaCpuWallets: false,
+    satsArenaPaymentsPerSecond: 1,
     satsArenaSatsPerPercent: 1,
     satsArenaWinSats: 100,
     satsArenaMaxDepositSats: 100000,

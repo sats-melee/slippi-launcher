@@ -82,6 +82,8 @@ export interface SettingsSchema {
   satsArenaEntrySats: number;
   satsArenaSurchargePercent: number;
   satsArenaBatchSeconds: number;
+  satsArenaCpuWallets: boolean;
+  satsArenaPaymentsPerSecond: number;
   satsArenaSatsPerPercent: number;
   satsArenaWinSats: number;
   satsArenaMaxDepositSats: number;

@@ -31,6 +31,7 @@ export const SatsArenaSettings = React.memo(() => {
   return (
     <div>
       <WalletSettings />
+      <DeveloperPaymentSettings />
       <NativeGameSettings />
       <Typography variant="caption">{Messages.previewNotice()}</Typography>
       <SettingItem name={Messages.mode()} description={Messages.modeDescription()}>
@@ -43,6 +44,28 @@ export const SatsArenaSettings = React.memo(() => {
       {mode === "connect" && <ConnectSettings />}
       {mode === "host" && <HostSettings />}
     </div>
+  );
+});
+
+const DeveloperPaymentSettings = React.memo(() => {
+  const [cpuWallets, setCpuWallets] = useSetting("satsArenaCpuWallets");
+  const [paymentsPerSecond, setPaymentsPerSecond] = useSetting("satsArenaPaymentsPerSecond");
+  return (
+    <SettingItem name="Payment debugging">
+      <Toggle
+        label="CPU wallets"
+        value={cpuWallets}
+        onChange={setCpuWallets}
+        description="CPU players fund entries and receive damage payouts and winnings. Sandbox prefills their test wallets. Applies the next time you open LOCAL."
+      />
+      <NumberSettingForm
+        label="Payment starts per second"
+        value={paymentsPerSecond}
+        onSave={setPaymentsPerSecond}
+        min={1}
+        max={20}
+      />
+    </SettingItem>
   );
 });
 

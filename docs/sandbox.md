@@ -124,7 +124,44 @@ Local development overrides (apply when opening LOCAL):
 - `SATS_ARENA_BATCH_SECONDS`: whole seconds, 1–120. The first credited hit starts
   the recipient's window; further hits join it without extending it. Match end
   flushes pending damage immediately.
+- `SATS_ARENA_CPU_WALLETS`: `1` gives CPU slots financial participation; `0` disables it.
+- `SATS_ARENA_PAYMENTS_PER_SECOND`: 1–20 new payout starts/second, default 1.
 
 Existing paid agreements preserve all their original terms. Archived ledgers
 record the pot, surcharge, and delay; `audit_arena.py` reports playable funds and
 retained routing contributions separately.
+
+Developer options includes **CPU wallets** and **Payment starts per second**.
+The CPU option preserves actual AI control; each CPU receives its own entry QR,
+receiver check, damage payments, winnings, and refunds. In Sandbox, fund its entry
+using **Pay from test wallet** just as for a human. CPU settings are locked before
+funding and apply on the next LOCAL launch. For a reproducible agent profile,
+`python3 scripts/sandbox-agent.py --cpu-wallets --batch-seconds 1` sets these values
+without changing the normal user's profile.
+
+`python3 scripts/payment-game-e2e.py --scenario cpu` builds the launcher,
+enables CPU wallets through the actual Developer options UI, selects/funds a CPU
+and human through controllers and accessibility, observes AI damage, toggles the
+native outbound-payment checkbox, ends the match through controller input, and
+checks settlement timing. It queries receiving Sandbox wallets independently
+using the read-only Rust `sandbox_receipts` example. Evidence is saved beneath
+`.release/payment-e2e/`; a failed prerequisite records `blocked`, never `passed`.
+It also samples finished-match hit accounting through settlement and fails if
+new hit credits or damage payouts appear. Cancellation additionally exercises
+Start and attack inputs in the unpaid rematch; these must not generate payouts.
+Older recovering matches must keep their hit accounting unchanged during the
+new game's actual CPU damage.
+
+After the first build, use `--no-build --scenario humans` for the human baseline,
+`--no-build --scenario cpu --finish cancel` for cancellation,
+`--no-build --scenario cpu-four --finish cancel` for a four-player backlog, and
+`--no-build --scenario cpu --finish cancel --restart-during-payout` for
+recovery without replacing or resending in-flight invoices. Each successful run
+closes only its isolated game/launcher; failed runs preserve state for inspection.
+The runner defaults to production's five-second damage batches and a 60-second
+settlement deadline. Use `--batch-seconds 1` for higher-pressure queue testing;
+each report records the actual delay, and provider failures remain failed tests.
+The reusable [CPU setup skill](../skills/sats-arena-sandbox/references/cpu-games.md)
+contains the menu, funding, focus, and troubleshooting steps.
+These commands require real host network, display/session-bus and Distrobox
+access. Compiling them or running the fake-wallet tests is not an E2E pass.

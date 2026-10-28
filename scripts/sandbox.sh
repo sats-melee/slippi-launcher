@@ -11,7 +11,7 @@ if ! command -v node >/dev/null; then
 fi
 cd "$root"
 case "${1:-}" in
-  local|screenshot|close) exec node scripts/sandbox-control.mjs "$@" ;;
+  local|cpu-wallets|screenshot|close) exec node scripts/sandbox-control.mjs "$@" ;;
 esac
 export TS_NODE_TRANSPILE_ONLY=true
 exec node -r ts-node/register scripts/sandbox.ts "$@"

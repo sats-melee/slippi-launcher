@@ -1,6 +1,6 @@
 ---
 name: sats-arena-sandbox
-description: "Develop and test Sats Arena's local Melee payment flow with Alby Sandbox NWC wallets, prefilled receiving addresses, and agent pipe controllers. Use for sandbox setup, payment regressions, and repeatable in-game invoice, admission, damage-payout, or settlement checks."
+description: "Set up and test Sats Arena Melee payments with Alby Sandbox wallets and actual controller-driven games, including solo CPU-wallet setup, funding, damage payouts, settlement, and payment debugging."
 ---
 
 # Sats Arena Sandbox
@@ -9,21 +9,25 @@ Use the same NWC invoice and payout path as live Arena, with isolated Alby test
 wallets. The deterministic fake wallet is for unit tests; it does not establish
 that payment integration works.
 
-Locate the workspace containing `slippi-launcher`, `Ishiiruka`, `sats-arena`,
+Locate the workspace containing `sats-melee-launcher`, `Ishiiruka`, `sats-arena`,
 `slippi-ssbm-asm`, and `dolphin-controller-mcp`. On this machine it is
-`/home/deck/projects`. Read `slippi-launcher/docs/sandbox.md` for maintained
+`/home/deck/projects` (older checkouts call the launcher `slippi-launcher`).
+Read the launcher's `docs/sandbox.md` for maintained
 commands and paths; use existing helpers instead of rebuilding wallet or
 controller plumbing in temporary scripts.
 
 ## Choose the requested operation
 
+- Solo CPU setup or CPU payment testing: read
+  [CPU games](references/cpu-games.md) for the verified menu, funding, focus,
+  debugging, and recovery steps. Reuse the existing helpers.
 - Inspect only: read source, `make sandbox-status`, and existing test evidence.
   Do not start a game or create wallets for an explanation-only request.
 - Human development: `make sandbox` builds, provisions missing test wallets,
   selects Sandbox in the normal launcher, and opens it. LOCAL starts the game.
 - Agent gameplay: `make sandbox-agent` builds and opens an isolated launcher
   with four pipe controllers. If already built, run
-  `python3 slippi-launcher/scripts/sandbox-agent.py` from the workspace.
+  `python3 scripts/sandbox-agent.py` from the launcher checkout.
 - Wallet-only integration: `make sandbox-check` creates an invoice, sends one
   test satoshi through NWC, and confirms the incoming receipt.
 
@@ -32,11 +36,11 @@ setup or payment testing. They are not authorization to spend from a live wallet
 
 ## Drive the isolated game
 
-From the workspace after starting the agent launcher:
+From the launcher checkout after starting the agent launcher:
 
 ```sh
-bash slippi-launcher/scripts/sandbox.sh local
-python3 slippi-launcher/scripts/sandbox-agent.py --status --wait 30
+bash scripts/sandbox.sh local
+python3 scripts/sandbox-agent.py --status --wait 30
 ```
 
 Use the returned native PID and profile path; never assume an old PID still
@@ -45,7 +49,7 @@ identifies the current game. It uses persistent fixtures under
 configuration. The explicit agent launcher exposes loopback Chromium debugging
 on port 9338. Its controllers are `Pipe/0/codex1` through `codex4`.
 
-Use `dolphin-controller-mcp/scripts/arena_scenarios.py --user-dir "PROFILE"`
+Use `../dolphin-controller-mcp/scripts/arena_scenarios.py --user-dir "PROFILE"`
 for actual controller input: `select --ports 1,2`, `start`, `battlefield`,
 `pills`, `walkoff`, and the documented team/CPU variants. Select characters
 before expecting entry invoices. All four sandbox receiving addresses are
@@ -55,28 +59,31 @@ Use GTK accessibility through the build container for sidebar controls:
 
 ```sh
 distrobox enter -n slippi-arena-build --no-tty -- python3 \
-  "$PWD/dolphin-controller-mcp/scripts/arena_ui.py" status --pid PID
+  "$PWD/../dolphin-controller-mcp/scripts/arena_ui.py" status --pid PID
 ```
 
 The same helper accepts `fund --port N --pid PID` and `log --pid PID`.
 In Sandbox, **Pay from test wallet** sends an NWC payment from the corresponding
 player wallet and waits for Arena's confirmed incoming receipt. Fund each
-participating human separately. CPU players need no invoice or recipient.
+participating player separately. By default CPUs have no wallet. Enable
+**CPU wallets** in Developer options before LOCAL to test real CPU entries,
+damage payouts, winnings and refunds; each CPU uses its port's Sandbox wallet.
 
 ## Establish observable success
 
 For changes affecting payments or admission, exercise the relevant parts of:
 
-1. Prefilled sandbox addresses verify, and each human gets its own BOLT11 QR.
+1. Prefilled sandbox addresses verify, and each financial participant gets its own BOLT11 QR.
 2. One paid entry leaves the match blocked; all required receipts allow Start.
 3. Actual in-game damage produces a confirmed payout after the batch window.
 4. The observed winner or winning team receives the correct settlement;
-   cancellation returns unspent entries. No payouts go to CPUs.
+   cancellation returns unspent entries. CPUs receive payments only when the
+   developer CPU-wallet option was enabled before funding.
 
 Inspect the game, the sidebar's payment log, and the Sandbox ledger path from
 `--status`. Controller delivery alone does not prove selection, a hit, or a
 winner. An NWC send acknowledgement alone does not prove incoming admission.
-Use `dolphin-controller-mcp/scripts/audit_arena.py "STATE_FILE"` for a read-only
+Use `../dolphin-controller-mcp/scripts/audit_arena.py "STATE_FILE"` for a read-only
 accounting check. Capture relevant receipts before the next-match loop resets
 the current pot. Keep evidence under the launcher's ignored `.release/` folder.
 
@@ -108,8 +115,8 @@ For implementation checks, use the focused launcher tests documented in
 Cleanup only the isolated test session:
 
 ```sh
-python3 slippi-launcher/scripts/sandbox-agent.py --close-game
-bash slippi-launcher/scripts/sandbox.sh close
+python3 scripts/sandbox-agent.py --close-game
+bash scripts/sandbox.sh close
 ```
 
 Report the observed receipts/results and any untested scenario. Do not describe

@@ -23,7 +23,12 @@ type NativeSettings = Pick<
   SettingsSchema,
   "satsArenaWalletBackend" | "satsArenaEntrySats" | "satsArenaSatsPerPercent"
 > &
-  Partial<Pick<SettingsSchema, "satsArenaSurchargePercent" | "satsArenaBatchSeconds">>;
+  Partial<
+    Pick<
+      SettingsSchema,
+      "satsArenaSurchargePercent" | "satsArenaBatchSeconds" | "satsArenaCpuWallets" | "satsArenaPaymentsPerSecond"
+    >
+  >;
 
 /** Only the main process calls this; the resulting secret is never returned over IPC. */
 export async function nativeWalletLaunch(
@@ -102,6 +107,18 @@ export async function nativeWalletLaunch(
   env.SATS_ARENA_SURCHARGE_BPS = surcharge;
   env.SATS_ARENA_ENTRY_SATS = entry;
   env.SATS_ARENA_SATS_PER_PERCENT = rate;
+  const cpuWallets = env.SATS_ARENA_CPU_WALLETS ?? (settings.satsArenaCpuWallets ? "1" : "0");
+  const paymentsPerSecond = env.SATS_ARENA_PAYMENTS_PER_SECOND ?? String(settings.satsArenaPaymentsPerSecond ?? 1);
+  if (
+    !["0", "1"].includes(cpuWallets) ||
+    !/^\d+$/.test(paymentsPerSecond) ||
+    Number(paymentsPerSecond) < 1 ||
+    Number(paymentsPerSecond) > 20
+  ) {
+    throw new Error("CPU wallets must be 0 or 1; payment starts per second must be 1–20.");
+  }
+  env.SATS_ARENA_CPU_WALLETS = cpuWallets;
+  env.SATS_ARENA_PAYMENTS_PER_SECOND = paymentsPerSecond;
   return { payload, env };
 }
 
@@ -135,6 +152,7 @@ export class SatsArenaNativeGame {
         path.join(configRoot, "SatsArenaDolphin"),
         path.join(configRoot, "SlippiOnline"),
       ]);
+      delete launch.env.NO_AT_BRIDGE;
       const child = spawn(binary, ["-b", "-e", settings.isoPath, "-u", userPath], {
         env: launch.env,
         // Dolphin does not read stdin for gameplay. A closed private pipe works on all platforms.

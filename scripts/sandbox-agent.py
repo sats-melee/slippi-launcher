@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Open an isolated, repeatable sandbox launcher with four agent pipe controllers."""
 import argparse
+import ast
 import json
 import os
 from pathlib import Path
@@ -30,10 +31,14 @@ def game_info(root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, help='Override the persistent agent config root')
+    parser.add_argument('--launcher', type=Path, help='Use a locally built launcher executable')
     parser.add_argument('--port', type=int, default=9338, help='Loopback Chromium debugging port')
     parser.add_argument('--wait', type=int, default=0, help='Wait up to this many seconds for the native game')
     parser.add_argument('--status', action='store_true', help='Print current agent game PID and ledger paths')
     parser.add_argument('--close-game', action='store_true', help='Close only the game using this agent profile')
+    parser.add_argument('--cpu-wallets', action='store_true', help='Enable financial CPU participants in the isolated Sandbox')
+    parser.add_argument('--payments-per-second', type=int, choices=range(1, 21), default=1)
+    parser.add_argument('--batch-seconds', type=int, choices=range(1, 121), default=5)
     args = parser.parse_args()
     if not 1024 <= args.port <= 65535:
         parser.error('Choose a debugging port between 1024 and 65535')
@@ -46,15 +51,19 @@ def main():
             time.sleep(.2)
             info = game_info(root)
         if args.close_game and info['native_pid']:
-            windows = subprocess.run(['xdotool', 'search', '--pid', str(info['native_pid'])], capture_output=True, text=True).stdout.split()
-            for window in windows:
-                title = subprocess.run(['xdotool', 'getwindowname', window], capture_output=True, text=True).stdout
-                if 'Slippi' in title:
-                    subprocess.run(['xdotool', 'windowclose', window], check=True)
+            if shutil.which('xdotool'):
+                windows = subprocess.run(['xdotool', 'search', '--pid', str(info['native_pid'])], capture_output=True, text=True).stdout.split()
+                for window in windows:
+                    title = subprocess.run(['xdotool', 'getwindowname', window], capture_output=True, text=True).stdout
+                    if 'Slippi' in title:
+                        subprocess.run(['xdotool', 'windowclose', window], check=True)
+            else:
+                subprocess.run(['distrobox', 'enter', '-n', 'slippi-arena-build', '--no-tty', '--',
+                    'python3', str(ROOT.parent / 'dolphin-controller-mcp/scripts/arena_ui.py'),
+                    'close', '--pid', str(info['native_pid'])], check=True, stdout=subprocess.DEVNULL)
         print(json.dumps(info, indent=2))
         return
     normal = Path(os.environ.get('XDG_CONFIG_HOME', home / '.config')) / 'Slippi Launcher'
-    subprocess.run(['bash', str(ROOT / 'scripts/sandbox.sh'), 'prepare'], check=True, stdout=subprocess.DEVNULL)
     settings = json.loads((normal / 'Settings').read_text())
     iso = settings.get('settings', {}).get('isoPath')
     if not iso or not Path(iso).is_file():
@@ -65,12 +74,20 @@ def main():
     fixture = user / 'sats-arena/sandbox'
     fixture.mkdir(parents=True, exist_ok=True, mode=0o700)
     destination = fixture / 'wallets.json'
-    shutil.copyfile(normal / 'sats-arena/sandbox/wallets.json', destination)
+    if not destination.exists():
+        subprocess.run(['bash', str(ROOT / 'scripts/sandbox.sh'), 'prepare'], check=True, stdout=subprocess.DEVNULL)
+        shutil.copyfile(normal / 'sats-arena/sandbox/wallets.json', destination)
     destination.chmod(0o600)
     output = user / 'Settings'
-    output.write_text(json.dumps({'settings': {'isoPath': iso, 'satsArenaWalletBackend': 'sandbox', 'satsArenaSatsPerPercent': 1, 'autoUpdateLauncher': False}}))
+    output.write_text(json.dumps({'settings': {
+        'isoPath': iso, 'satsArenaWalletBackend': 'sandbox', 'satsArenaSatsPerPercent': 1,
+        'satsArenaCpuWallets': args.cpu_wallets,
+        'satsArenaPaymentsPerSecond': args.payments_per_second,
+        'satsArenaBatchSeconds': args.batch_seconds,
+        'autoUpdateLauncher': False,
+    }}))
     output.chmod(0o600)
-    (profile / 'Config/Dolphin.ini').write_text('[Core]\n' + ''.join(f'SIDevice{port} = 6\n' for port in range(4)) + '[Interface]\nConfirmStop = False\n[Input]\nBackgroundInput = True\n[Display]\nRenderWindowWidth = 1440\nRenderWindowHeight = 900\nFullscreen = False\n')
+    (profile / 'Config/Dolphin.ini').write_text('[Core]\n' + ''.join(f'SIDevice{port} = 6\n' for port in range(4)) + '[Interface]\nConfirmStop = False\nMainWindowPosX = 0\nMainWindowPosY = 0\nMainWindowWidth = 1280\nMainWindowHeight = 720\n[Input]\nBackgroundInput = True\n[Display]\nRenderWindowWidth = 1280\nRenderWindowHeight = 720\nFullscreen = False\n')
     bindings = {
         **{f'Buttons/{button.title() if button == "START" else button}': f'`Button {button}`' for button in ['A','B','X','Y','Z','START']},
         **{f'D-Pad/{name}': f'`Button D_{name.upper()}`' for name in ['Up','Down','Left','Right']},
@@ -88,11 +105,21 @@ def main():
             os.mkfifo(fifo, 0o600)
         pads += f'[GCPad{port}]\nDevice = Pipe/0/codex{port}\n' + ''.join(f'{key} = {value}\n' for key,value in bindings.items())
     (profile / 'Config/GCPadNew.ini').write_text(pads)
-    launcher = home / '.local/bin/sats-arena'
+    launcher = args.launcher or home / '.local/bin/sats-arena'
     if not launcher.is_file():
         raise RuntimeError('Run make release once before opening the agent sandbox')
     env = dict(os.environ, XDG_CONFIG_HOME=str(root), XDG_STATE_HOME=str(root / 'state'))
     env['GTK_MODULES'] = 'gail:atk-bridge'
+    if not env.get('AT_SPI_BUS_ADDRESS'):
+        try:
+            address = ast.literal_eval(subprocess.check_output([
+                'distrobox', 'enter', '-n', 'slippi-arena-build', '--no-tty', '--',
+                'gdbus', 'call', '--session', '--dest', 'org.a11y.Bus', '--object-path',
+                '/org/a11y/bus', '--method', 'org.a11y.Bus.GetAddress'], text=True, timeout=10))[0]
+            if isinstance(address, str) and address.startswith('unix:'):
+                env['AT_SPI_BUS_ADDRESS'] = address
+        except (OSError, subprocess.SubprocessError, ValueError, SyntaxError):
+            pass
     for key in list(env):
         if key.startswith('SATS_ARENA_'):
             del env[key]
