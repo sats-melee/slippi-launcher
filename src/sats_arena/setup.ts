@@ -34,10 +34,7 @@ export default function setupSatsArenaIpc({ settingsManager }: { settingsManager
   const sandbox = new SandboxWallets(path.join(app.getPath("userData"), "sats-arena", "sandbox"));
   const nativeGame = new SatsArenaNativeGame(settingsManager, secrets, sandbox);
   ipc_satsArenaGetSandboxInfo.main!.handle(async () => sandbox.info());
-  ipc_satsArenaSetupSandbox.main!.handle(async () => {
-    await sandbox.ensure();
-    return sandbox.info();
-  });
+  ipc_satsArenaSetupSandbox.main!.handle(async () => sandbox.topUp());
   ipc_satsArenaLaunchLocalGame.main!.handle(async () => {
     await nativeGame.start();
     return {};

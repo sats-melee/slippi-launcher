@@ -1,4 +1,17 @@
 export const SatsArenaSettingsMessages = {
+  cpuWallets: () => "CPU wallets",
+  cpuWalletsDescription: () => "Include CPU opponents in entry payments, damage payouts and winnings.",
+  cpuLiveSteps: () =>
+    "Live bitcoin: CPU wallets are not created automatically. Enter a Lightning address from a wallet you control in each CPU card, then fund its entry QR. Use the button below for automatic test wallets.",
+  cpuSandboxSteps: () =>
+    "Close any open game, then open LOCAL and select your fighters and CPUs. Press Start to show invoices, then click Test pay on every player card, including CPUs. Once all entries are paid, press Start to play.",
+  cpuSetup: () => "Set up CPU test wallets",
+  cpuSetupPreparing: () => "Preparing CPU test wallets…",
+  cpuSetupDescription: () =>
+    "Switches to Alby Sandbox, creates and funds reusable player wallets, and fills their addresses automatically. Uses NWC payments with test sats; no real bitcoin. Your saved live connection is kept.",
+  cpuSetupIncomplete: () => "CPU test wallets are not ready. Retry setup; existing wallets were preserved.",
+  cpuSetupReady: () => "CPU test wallets ready. Close any open game, then reopen LOCAL. Addresses will be filled in.",
+  cpuSettingsApply: () => "CPU wallet changes apply the next time you open LOCAL. Close an existing game first.",
   previewNotice: () =>
     "The settings below are for the separate remote server preview. Local games use the wallet selected above.",
   nativeGame: () => "Local game program",

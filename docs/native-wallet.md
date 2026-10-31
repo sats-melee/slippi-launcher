@@ -5,6 +5,24 @@ Choose your Melee ISO, then press **LOCAL** in the launcher header or
 directly with the Arena payment panel. **ONLINE** retains the existing Slippi
 netplay launch and its in-game login. The Wallet setting applies to local Arena,
 independently of the separate server-preview mode.
+
+For solo testing without entering wallet addresses, click **Set up CPU test
+wallets** under **Settings → Developer options**. This prepares and
+funds the reusable Alby Sandbox wallets, selects Sandbox, and enables CPU
+participation together. Their addresses are shown on the launcher and prefilled
+in the game. Close any open game and reopen LOCAL, select your fighters and CPUs,
+and press Start. Click **Test pay** on every participating card, including CPUs;
+once all entries are confirmed, press Start to play. Sandbox uses NWC with test
+sats, not real bitcoin. Setup preserves the saved live connection and only
+changes wallet mode after all four player wallets are ready.
+
+For real bitcoin, enable **CPU wallets** under **Settings → Developer options** before
+opening LOCAL. In Live Lightning mode, CPU cards accept normal Lightning
+addresses, just like human cards. Enter or edit the receiving address before
+funding, then pay the CPU’s entry QR from a wallet. Its damage payouts, winnings
+and refunds go to that address. Addresses stay with their player slots between
+matches, including when a slot changes between human and CPU.
+
 Use **Sandbox** for development: five reusable Alby NWC test wallets and four
 prefilled player addresses are prepared automatically. See [sandbox.md](sandbox.md)
 for the agent workflow. For real payments, select **Live Lightning** and save the

@@ -31,6 +31,7 @@ export const SatsArenaSettings = React.memo(() => {
   return (
     <div>
       <WalletSettings />
+      <CpuWalletSettings />
       <DeveloperPaymentSettings />
       <NativeGameSettings />
       <Typography variant="caption">{Messages.previewNotice()}</Typography>
@@ -47,17 +48,79 @@ export const SatsArenaSettings = React.memo(() => {
   );
 });
 
-const DeveloperPaymentSettings = React.memo(() => {
+const CpuWalletSettings = React.memo(() => {
   const [cpuWallets, setCpuWallets] = useSetting("satsArenaCpuWallets");
+  const [walletBackend] = useSetting("satsArenaWalletBackend");
+  const { satsArenaService } = useServices();
+  const { showError, showSuccess } = useToasts();
+  const [preparingWallets, setPreparingWallets] = React.useState(false);
+  const [testAddresses, setTestAddresses] = React.useState<string[]>([]);
+  React.useEffect(() => {
+    if (walletBackend === "sandbox" && cpuWallets) {
+      satsArenaService
+        .getSandboxInfo()
+        .then((info) => setTestAddresses(info.addresses))
+        .catch(showError);
+    }
+  }, [walletBackend, cpuWallets, satsArenaService, showError]);
+  const prepareCpuWallets = async () => {
+    setPreparingWallets(true);
+    try {
+      const info = await satsArenaService.setupSandbox();
+      if (!info.ready || info.addresses.length !== 4) {
+        throw new Error(Messages.cpuSetupIncomplete());
+      }
+      await window.electron.settings.updateSettings([
+        { key: "satsArenaWalletBackend", value: "sandbox" },
+        { key: "satsArenaCpuWallets", value: true },
+      ]);
+      setTestAddresses(info.addresses);
+      showSuccess(Messages.cpuSetupReady());
+    } catch (err) {
+      showError(err);
+    } finally {
+      setPreparingWallets(false);
+    }
+  };
+  return (
+    <SettingItem>
+      <Toggle
+        label={Messages.cpuWallets()}
+        value={cpuWallets}
+        onChange={(value) => {
+          void setCpuWallets(value).catch(showError);
+        }}
+        description={Messages.cpuWalletsDescription()}
+      />
+      {cpuWallets && (
+        <Typography color="text.secondary" sx={{ fontSize: 12, marginTop: 1 }}>
+          {walletBackend === "sandbox" ? Messages.cpuSandboxSteps() : Messages.cpuLiveSteps()}
+        </Typography>
+      )}
+      <Button disabled={preparingWallets} onClick={prepareCpuWallets} sx={{ marginTop: 1 }}>
+        {preparingWallets ? Messages.cpuSetupPreparing() : Messages.cpuSetup()}
+      </Button>
+      <Typography color="text.secondary" sx={{ fontSize: 11 }}>
+        {Messages.cpuSetupDescription()}
+      </Typography>
+      {walletBackend === "sandbox" &&
+        cpuWallets &&
+        testAddresses.map((address, index) => (
+          <Typography key={address} sx={{ fontSize: 11 }}>
+            Player {index + 1}: {address}
+          </Typography>
+        ))}
+      <Typography color="text.secondary" sx={{ fontSize: 11, marginTop: 1 }}>
+        {Messages.cpuSettingsApply()}
+      </Typography>
+    </SettingItem>
+  );
+});
+
+const DeveloperPaymentSettings = React.memo(() => {
   const [paymentsPerSecond, setPaymentsPerSecond] = useSetting("satsArenaPaymentsPerSecond");
   return (
     <SettingItem name="Payment debugging">
-      <Toggle
-        label="CPU wallets"
-        value={cpuWallets}
-        onChange={setCpuWallets}
-        description="CPU players fund entries and receive damage payouts and winnings. Sandbox prefills their test wallets. Applies the next time you open LOCAL."
-      />
       <NumberSettingForm
         label="Payment starts per second"
         value={paymentsPerSecond}
@@ -71,6 +134,7 @@ const DeveloperPaymentSettings = React.memo(() => {
 
 const WalletSettings = React.memo(() => {
   const [walletBackend, setWalletBackend] = useSetting("satsArenaWalletBackend");
+  const [cpuWallets] = useSetting("satsArenaCpuWallets");
   return (
     <div>
       <SettingItem name={Messages.wallet()} description={Messages.walletDescription()}>
@@ -80,7 +144,7 @@ const WalletSettings = React.memo(() => {
         </RadioGroup>
       </SettingItem>
       <Typography variant="caption">{Messages.walletRestart()}</Typography>
-      {walletBackend === "sandbox" && <SandboxSettings />}
+      {walletBackend === "sandbox" && !cpuWallets && <SandboxSettings />}
       {walletBackend === "nwc" && <NwcSettings />}
     </div>
   );

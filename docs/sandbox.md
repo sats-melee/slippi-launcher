@@ -131,10 +131,16 @@ Existing paid agreements preserve all their original terms. Archived ledgers
 record the pot, surcharge, and delay; `audit_arena.py` reports playable funds and
 retained routing contributions separately.
 
-Developer options includes **CPU wallets** and **Payment starts per second**.
+**Settings → Developer options** includes **CPU wallets**.
+For automatic solo setup, **Set up CPU test wallets** prepares funded wallets,
+selects Sandbox, and enables CPU wallets together. The launcher shows each
+address and the steps to select, fund and start the match. Close an existing
+game and reopen LOCAL to apply the setup. If provisioning fails, the current
+wallet mode stays selected and existing fixture identities are preserved.
+Developer options includes **Payment starts per second**.
 The CPU option preserves actual AI control; each CPU receives its own entry QR,
 receiver check, damage payments, winnings, and refunds. In Sandbox, fund its entry
-using **Pay from test wallet** just as for a human. CPU settings are locked before
+using **Test pay** just as for a human. CPU settings are locked before
 funding and apply on the next LOCAL launch. For a reproducible agent profile,
 `python3 scripts/sandbox-agent.py --cpu-wallets --batch-seconds 1` sets these values
 without changing the normal user's profile.

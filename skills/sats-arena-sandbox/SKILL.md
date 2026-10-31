@@ -63,10 +63,10 @@ distrobox enter -n slippi-arena-build --no-tty -- python3 \
 ```
 
 The same helper accepts `fund --port N --pid PID` and `log --pid PID`.
-In Sandbox, **Pay from test wallet** sends an NWC payment from the corresponding
+In Sandbox, **Test pay** sends an NWC payment from the corresponding
 player wallet and waits for Arena's confirmed incoming receipt. Fund each
 participating player separately. By default CPUs have no wallet. Enable
-**CPU wallets** in Developer options before LOCAL to test real CPU entries,
+**CPU wallets** in **Settings → Developer options** before LOCAL to test real CPU entries,
 damage payouts, winnings and refunds; each CPU uses its port's Sandbox wallet.
 
 ## Establish observable success
@@ -78,7 +78,7 @@ For changes affecting payments or admission, exercise the relevant parts of:
 3. Actual in-game damage produces a confirmed payout after the batch window.
 4. The observed winner or winning team receives the correct settlement;
    cancellation returns unspent entries. CPUs receive payments only when the
-   developer CPU-wallet option was enabled before funding.
+   CPU-wallet option was enabled before funding.
 
 Inspect the game, the sidebar's payment log, and the Sandbox ledger path from
 `--status`. Controller delivery alone does not prove selection, a hit, or a

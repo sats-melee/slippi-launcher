@@ -6,6 +6,8 @@ import { ArenaPage } from "./arena_page";
 const mocks = vi.hoisted(() => ({
   iso: "melee.iso" as string | null,
   backend: "nwc",
+  error: vi.fn(),
+  success: vi.fn(),
   open: vi.fn(),
 }));
 vi.mock("@/lib/hooks/use_settings", () => ({
@@ -21,7 +23,7 @@ vi.mock("@/lib/hooks/use_settings", () => ({
   ],
 }));
 vi.mock("@/lib/hooks/use_toasts", () => ({
-  useToasts: () => ({ showError: vi.fn(), showSuccess: vi.fn() }),
+  useToasts: () => ({ showError: mocks.error, showSuccess: mocks.success }),
 }));
 vi.mock("@/lib/hooks/use_settings_modal", () => ({
   useSettingsModal: () => ({ open: mocks.open }),
@@ -50,6 +52,14 @@ it("keeps missing-ISO setup reachable", () => {
   render(<ArenaPage />);
   fireEvent.click(screen.getByRole("button", { name: "Choose your Melee ISO to play" }));
   expect(mocks.open).toHaveBeenCalledWith("/settings/melee-options");
+});
+
+it.each(["nwc", "sandbox"])("keeps CPU wallet controls off the splash page in %s mode", (backend) => {
+  mocks.backend = backend;
+  render(<ArenaPage />);
+  expect(screen.queryByRole("checkbox", { name: "CPU wallets" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Set up CPU test wallets" })).toBeNull();
+  expect(screen.getByLabelText("Player pot (sats)")).toBeTruthy();
 });
 
 it("defaults to 400 sats and 1 sat per percent, and saves both rules together", async () => {

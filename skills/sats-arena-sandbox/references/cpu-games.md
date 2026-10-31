@@ -40,14 +40,19 @@ and checks the separate native note saying a new match can be played.
 
 ## Human setup
 
-Open launcher **Developer options**, choose **Sandbox — Alby test wallets**, and
-prepare/reuse the test wallets. In **Payment debugging**, enable **CPU wallets**.
+Open **Settings → Developer options** and click **Set up CPU test wallets**.
+It prepares/reuses funded Sandbox wallets, selects Sandbox, and enables CPU
+wallets together. Public addresses and gameplay steps are shown
+there; the game prefills every player address. This uses NWC with test sats,
+not real bitcoin. The saved live connection is preserved. Close an existing game
+before reopening LOCAL. Developer options still exposes the separate wallet
+mode and fixture controls.
 Start with **Payment starts per second = 1**. A one-second damage payout delay
 is useful for creating a test backlog; save changed match settings before LOCAL.
 
 Open LOCAL, select a human character and one or more actual CPU opponents, then
 press Start. Every financial player, including each CPU, needs a verified
-receiving address and its own entry payment. Use **Pay from test wallet** on each
+receiving address and its own entry payment. Use **Test pay** on each
 participating card. Confirm all entries before starting the match. CPU wallets
 are off by default and changes apply on the next LOCAL launch; funded agreements
 retain their original terms.
