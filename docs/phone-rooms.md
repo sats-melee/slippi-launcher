@@ -30,3 +30,6 @@ keep the desktop server URL as `http://127.0.0.1:8738`, and open
 `http://<this-computer-LAN-IP>:8738` on the phone. Enter the code shown in LOCAL.
 Local HTTP selects the invoice for manual copying when clipboard access is
 unavailable; opening it in a Lightning wallet is also supported.
+The sidebar shows this LAN address automatically when the desktop connects to a
+loopback server. Its larger room code and total invoice remain visible above the
+player payment cards.
