@@ -26,7 +26,9 @@ make sandbox
 
 This builds and installs the production launcher, provisions five reusable Alby
 test wallets if needed, selects Sandbox, and opens the launcher. Press LOCAL.
-The game prefills all four receiving addresses and checks them at PRESS START.
+The game prefills all four receiving addresses and checks active funding slots
+before character selection. Players can join the phone room and pay their own
+entry before choosing a fighter; other players can join after the first payment.
 Successful receiving checks are cached by address for 30 minutes, including
 across rounds, controller slots, and restarts. Cached receiving limits must still
 cover this match's pot. A changed, expired, or incompatible address gets checked
@@ -84,7 +86,7 @@ python3 dolphin-controller-mcp/scripts/arena_scenarios.py --user-dir "PROFILE" s
 distrobox enter -n slippi-arena-build --no-tty -- python3 "$PWD/dolphin-controller-mcp/scripts/arena_ui.py" status --pid PID
 ```
 
-Receiving checks happen automatically after character selection. Wait until both
+Receiving checks happen automatically before character selection. Wait until both
 QR invoices appear, then use `arena_ui.py fund --port 1 --pid PID` and `--port 2`
 through the same Distrobox command. In Sandbox, this invokes real NWC test-wallet
 payments. It does not manipulate the invoice state. The helper refuses live mode.

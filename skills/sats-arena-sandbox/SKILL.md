@@ -51,9 +51,10 @@ on port 9338. Its controllers are `Pipe/0/codex1` through `codex4`.
 
 Use `../dolphin-controller-mcp/scripts/arena_scenarios.py --user-dir "PROFILE"`
 for actual controller input: `select --ports 1,2`, `start`, `battlefield`,
-`pills`, `walkoff`, and the documented team/CPU variants. Select characters
-before expecting entry invoices. All four sandbox receiving addresses are
-prefilled; verification happens automatically at PRESS START.
+`pills`, `walkoff`, and the documented team/CPU variants. Entry invoices are
+available before character selection. All four sandbox receiving addresses are
+prefilled; active funding slots verify automatically.
+Choose fighters before Start; character changes preserve paid entries.
 
 Use GTK accessibility through the build container for sidebar controls:
 
@@ -107,8 +108,9 @@ For implementation checks, use the focused launcher tests documented in
   changing mode; the launcher selection does not reconfigure a running child.
 - Payment requests run off the emulation thread. Admission must still require
   fresh game authorization. Temporary polling/readiness gaps must not cancel a
-  funded, unchanged lobby; actual roster, team, character, or scene changes must
-  invalidate the old lobby. The native gate has separate generations for these.
+  funded, unchanged lobby; changes to paid slots or teams, or scene changes, must
+  invalidate the old lobby. Character changes revoke admission while preserving
+  paid entries. The native gate has separate generations for these.
 - If the faucet or relay is unavailable, or capability checks fail, report that
   limitation and preserve state. Do not silently fall back to fake payments.
 
