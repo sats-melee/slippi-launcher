@@ -236,7 +236,7 @@ async function waitForHealthy(url: string, stillRunning: () => boolean) {
   throw new Error("The server didn't respond within 10 seconds. Check its logs.");
 }
 
-export async function checkHealth(url: string): Promise<{ ok: boolean; message: string }> {
+export async function checkHealth(url: string, phoneRoomOnly = false): Promise<{ ok: boolean; message: string }> {
   let healthUrl: URL;
   try {
     healthUrl = new URL("health", url.endsWith("/") ? url : `${url}/`);
@@ -249,7 +249,14 @@ export async function checkHealth(url: string): Promise<{ ok: boolean; message: 
   try {
     const res = await fetch(healthUrl, { signal: AbortSignal.timeout(3000) });
     const body = (await res.text()).trim();
-    return res.ok && body === "ok"
+    let roomServer = false;
+    try {
+      const health = JSON.parse(body);
+      roomServer = health.service === "sats-melee-rooms" && health.version === 1 && health.ok === true;
+    } catch {
+      /* The retired server's health response is plain text. */
+    }
+    return res.ok && ((!phoneRoomOnly && body === "ok") || roomServer)
       ? { ok: true, message: "Connected" }
       : { ok: false, message: `Unexpected response (HTTP ${res.status})` };
   } catch (err) {

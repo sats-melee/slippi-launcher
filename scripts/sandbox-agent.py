@@ -31,6 +31,7 @@ def game_info(root):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, help='Override the persistent agent config root')
+    parser.add_argument('--native-binary', type=Path, help='Use a test native executable in this isolated profile')
     parser.add_argument('--launcher', type=Path, help='Use a locally built launcher executable')
     parser.add_argument('--port', type=int, default=9338, help='Loopback Chromium debugging port')
     parser.add_argument('--wait', type=int, default=0, help='Wait up to this many seconds for the native game')
@@ -85,6 +86,7 @@ def main():
         'satsArenaPaymentsPerSecond': args.payments_per_second,
         'satsArenaBatchSeconds': args.batch_seconds,
         'autoUpdateLauncher': False,
+        'satsArenaDolphinBinaryPath': str(args.native_binary.resolve()) if args.native_binary else None,
     }}))
     output.chmod(0o600)
     (profile / 'Config/Dolphin.ini').write_text('[Core]\n' + ''.join(f'SIDevice{port} = 6\n' for port in range(4)) + '[Interface]\nConfirmStop = False\nMainWindowPosX = 0\nMainWindowPosY = 0\nMainWindowWidth = 1280\nMainWindowHeight = 720\n[Input]\nBackgroundInput = True\n[Display]\nRenderWindowWidth = 1280\nRenderWindowHeight = 720\nFullscreen = False\n')

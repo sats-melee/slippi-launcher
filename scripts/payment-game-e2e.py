@@ -46,12 +46,59 @@ def accrual(pot):
                                       'unbatched', 'batch_deadline_ms')}
     frozen['damage_payouts'] = [{key: payout[key] for key in ('id', 'player', 'sats')}
                                for payout in pot['payouts'] if payout['reason'] == 'Damage']
+    frozen['damage_by_player_centi'] = pot.get('damage_by_player_centi')
+    frozen['damage_tracking_complete'] = pot.get('damage_tracking_complete')
     return frozen
+
+
+def check_summary(view, pot):
+    """Compare the visible row/column labels with the exact persisted damage."""
+    if not view['visible']:
+        raise RuntimeError('The actual post-match sidebar summary is not visible')
+    winner = pot['outcome'].get('Winner') if isinstance(pot['outcome'], dict) else None
+    title = 'No contest' if winner is None else (
+        f"{['Red', 'Blue', 'Green'][pot['team_ids'][winner]]} team wins" if pot['teams'] else f'P{winner + 1} wins')
+    if not view['labels'] or view['labels'][0] != title:
+        raise RuntimeError('The displayed summary has the wrong match outcome')
+    players = [p for p, kind in enumerate(pot['kinds']) if kind < 2]
+    expected = ['To →', *[f'P{p + 1}' for p in players]]
+    for attacker in players:
+        expected.append(f'P{attacker + 1}' + (' CPU' if pot['kinds'][attacker] == 1 else ''))
+        for victim in players:
+            n = pot['damage_by_player_centi'][attacker][victim]
+            expected.append('—' if attacker == victim else f'{n // 100}.{n % 100:02d}%')
+    if view['grid'] != expected:
+        raise RuntimeError(f'The visible damage grid disagrees with the match: {view["grid"]!r} != {expected!r}')
+
+
+def check_damage_descriptions(saved, receipts):
+    attributed = []
+    for payout in saved['pot']['payouts']:
+        sources = saved['pot']['payout_damage_sources'].get(payout['id'])
+        if payout['state'] != 'Paid' or not sources:
+            continue
+        targets = [f'P{p + 1}' for p, sats in enumerate(sources) if sats]
+        memo = saved['prepared'][payout['id']]['memo']
+        if not targets or not all(target in memo for target in targets):
+            raise RuntimeError('A paid damage batch lost its opponent attribution')
+        matching = [r for r in saved['receipts'] if r['id'] == payout['id']]
+        if len(matching) != 1 or matching[0]['memo'] != memo:
+            raise RuntimeError('The activity receipt changed the prepared payment description')
+        wallet = next(r for r in receipts['receiver_confirmed_payouts'] if r['id'] == payout['id'])
+        grouped = any(payout['id'] in members for members in saved.get('payout_groups', {}).values())
+        expected = memo[:256] if grouped else memo
+        if wallet['wallet_description'] != expected or wallet['wallet_comment'] != expected:
+            raise RuntimeError('The receiving Sandbox wallet lost the payment description')
+        attributed.append({'id': payout['id'], 'memo': memo, 'opponents': targets})
+    if not attributed:
+        raise RuntimeError('No opponent-attributed payment was confirmed')
+    return attributed
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--scenario', choices=['humans', 'cpu', 'cpu-four'], default='cpu')
+    parser.add_argument('--native-binary', type=Path, help='Test native executable for this isolated Sandbox run')
     parser.add_argument('--no-build', action='store_true')
     parser.add_argument('--root', type=Path, default=Path.home() / '.local/share/sats-arena/payment-e2e')
     parser.add_argument('--port', type=int, default=0, help='Unused CDP port; 0 chooses a free port')
@@ -59,6 +106,7 @@ def main():
     parser.add_argument('--batch-seconds', type=int, choices=range(1, 121), default=5)
     parser.add_argument('--settlement-deadline', type=int, default=60)
     parser.add_argument('--finish', choices=['winner', 'cancel'], default='winner')
+    parser.add_argument('--pay-missed-after-match', action='store_true', help='Use the native end-of-match button for safe missed amounts')
     parser.add_argument('--restart-during-payout', action='store_true')
     parser.add_argument('--require-background-payments', action='store_true',
                         help='Require real older payouts to remain pending while this match is played')
@@ -96,6 +144,8 @@ def main():
         env = dict(os.environ, ARENA_AGENT_DEBUG_PORT=str(args.port))
         launch = [sys.executable, ROOT / 'scripts/sandbox-agent.py', '--root', args.root,
                   '--port', args.port, '--batch-seconds', args.batch_seconds, '--payments-per-second', '1']
+        if args.native_binary:
+            launch += ['--native-binary', args.native_binary]
         info = json.loads(command(launch, env=env))
         if args.scenario != 'humans':
             command(['bash', ROOT / 'scripts/sandbox.sh', 'cpu-wallets', 'on'], env=env, timeout=90)
@@ -163,7 +213,16 @@ def main():
             if not room['pot'].get('cpu_wallets') or room['pot']['kinds'] != expected:
                 raise RuntimeError('Financial CPU roster was not established through the launcher/game')
         print('Verified entry invoices and actual game roster', flush=True)
+        ui('activate')
+        def funding_layout():
+            try:
+                return ui('funding-layout')
+            except RuntimeError:
+                return None
+        report['funding_layout'] = wait_for(funding_layout,
+            lambda v: v is not None and len(v['qrs']) == len(ports), 15, 'all entry QRs and footer fit on screen')
         ui('capture', '--output', str(evidence / 'entry-invoices.png'))
+        report['checks']['all_entry_qrs_fit_without_footer_overlap'] = True
         ui('fund', '--port', '1')
         room = saved()
         if room['pot']['paid'][:2] != [True, False] or room['pot']['phase'] != 'Funding':
@@ -229,7 +288,7 @@ def main():
             if any(prior_payments[key] != outstanding[key] for key in overlap):
                 raise RuntimeError('Playing a new match changed an older in-flight payment')
             notice = ui('background')
-            if not notice['visible'] or 'You can play a new match.' not in notice['text']:
+            if not notice['visible'] or 'Play on.' not in notice['text']:
                 raise RuntimeError('The native background payout notice is missing during gameplay')
             report['background_payments_during_game'] = len(overlap)
             report['background_notice'] = notice
@@ -258,6 +317,10 @@ def main():
                 controller('walkoff', '--ports', '2', '--direction', 'right', '--seconds', '1')
         wait_for(match, lambda s: s['pot'].get('outcome') is not None, 10, 'controller-driven match end')
         print('Observed match end; checking that hit accounting stays frozen during settlement', flush=True)
+        ui('activate')
+        summary = wait_for(lambda: ui('summary-state'), lambda v: v['visible'], 15, 'automatic damage summary')
+        check_summary(summary, match()['pot'])
+        report['checks']['visible_summary_matches_all_damage'] = True
         ui('capture', '--output', str(evidence / 'match-ended.png'))
         if args.finish == 'cancel' and not args.restart_during_payout:
             # Cancellation returns to the real CSS with the same selected roster.
@@ -268,6 +331,8 @@ def main():
                              and s['pot']['phase'] == 'Funding', 15, 'unpaid rematch lobby')
             if any(lobby['pot']['paid']) or lobby['pot']['last_credit_sequence'] != 0:
                 raise RuntimeError('The rematch reused admission or damage credits')
+            wait_for(lambda: ui('summary-state'), lambda v: not v['visible'], 10, 'Start dismisses summary')
+            report['checks']['controller_dismisses_summary'] = True
             controller('pills', '--port', human, '--count', '5')
             time.sleep(5)
             lobby = saved()['pot']
@@ -275,6 +340,10 @@ def main():
                     or lobby['last_credit_sequence'] != 0 or lobby['payouts']):
                 raise RuntimeError('Post-match inputs admitted or credited an unpaid rematch')
             report['checks']['unfunded_rematch_inputs_do_not_accrue'] = True
+            ui('activate')
+            report['rematch_funding_layout'] = wait_for(funding_layout,
+                lambda v: v is not None and len(v['qrs']) == len(ports), 15, 'rematch QRs and footer fit on screen')
+            report['checks']['rematch_qrs_fit_with_background_notice'] = True
             ui('capture', '--output', str(evidence / 'unfunded-rematch.png'))
         original_hashes = {}
         if args.restart_during_payout:
@@ -301,8 +370,20 @@ def main():
             if not info['native_pid']:
                 raise RuntimeError('The isolated game did not restart')
             pid = info['native_pid']
-        final = wait_for(match, lambda s: s['pot']['phase'] == 'Settled',
+        missed_requests = []
+        def settle():
+            if args.pay_missed_after_match:
+                view = ui('missed')
+                if view['pay_enabled']:
+                    requested = ui('pay-missed')
+                    missed_requests.append(requested)
+                    (evidence / 'missed-payment-requests.json').write_text(json.dumps(missed_requests, indent=2))
+            return match()
+        final = wait_for(settle, lambda s: s['pot']['phase'] == 'Settled',
                          args.settlement_deadline, 'all payouts confirmed after match end')
+        report['missed_payment_requests'] = missed_requests
+        report['checks']['missed_list_visible'] = bool(args.pay_missed_after_match)
+        report['checks']['native_missed_payout_button_exercised'] = bool(missed_requests)
         if (observations['post_end_samples'] == 0 or observations['accrual_changes']
                 or accrual(final['pot']) != observations.get('accrual_at_match_end')
                 or any(accrual(read_match(mid)['pot']) != frozen
@@ -347,8 +428,9 @@ def main():
             if timing['stage'] == 'payment_dispatch' and timing['id'].startswith(f'{match_id}-'):
                 submitted.append(timing)
         ids = [entry['id'].removeprefix('payout-') for entry in submitted]
-        if len(ids) != len(set(ids)):
-            raise RuntimeError('A payout was submitted more than once')
+        attempts = [(entry['id'], entry.get('attempt', 1)) for entry in submitted]
+        if len(attempts) != len(set(attempts)):
+            raise RuntimeError('A payment attempt was submitted more than once')
         starts = sorted(entry['started_at_ms'] for entry in submitted)
         if any(b - a < 950 for a, b in zip(starts, starts[1:])):
             raise RuntimeError('Payment submissions exceeded the configured one-per-second pace')
@@ -400,6 +482,8 @@ def main():
                           input=json.dumps({'fixture': str(fixture), 'state': str(receipt_state)}))
         report['wallet_receipts'] = json.loads(receipt)
         report['checks']['independent_receiving_wallets_confirmed'] = True
+        report['attributed_payments'] = check_damage_descriptions(final, report['wallet_receipts'])
+        report['checks']['wallet_descriptions_name_opponents'] = True
         report['status'] = 'passed'
         report['end_to_end_passed'] = True
     except Exception as error:

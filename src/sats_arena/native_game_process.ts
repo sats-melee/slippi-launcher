@@ -12,6 +12,7 @@ import { prepareLocalGameProfile } from "./local_game_profile";
 import { localRulesError } from "./local_rules";
 import type { NwcSecretStore } from "./nwc_secret_store";
 import { isValidNwcUri } from "./nwc_secret_store";
+import { phoneRoomUrlError } from "./phone_room";
 import type { SandboxWallets } from "./sandbox";
 
 type WalletPayload = {
@@ -27,7 +28,12 @@ type NativeSettings = Pick<
   Partial<
     Pick<
       SettingsSchema,
-      "satsArenaSurchargePercent" | "satsArenaBatchSeconds" | "satsArenaCpuWallets" | "satsArenaPaymentsPerSecond"
+      | "satsArenaSurchargePercent"
+      | "satsArenaBatchSeconds"
+      | "satsArenaCpuWallets"
+      | "satsArenaPaymentsPerSecond"
+      | "satsArenaPhoneRoomEnabled"
+      | "satsArenaPhoneRoomServerUrl"
     >
   >;
 
@@ -120,6 +126,15 @@ export async function nativeWalletLaunch(
   }
   env.SATS_ARENA_CPU_WALLETS = cpuWallets;
   env.SATS_ARENA_PAYMENTS_PER_SECOND = paymentsPerSecond;
+  delete env.SATS_ARENA_ROOM_SERVER_URL;
+  if (settings.satsArenaPhoneRoomEnabled) {
+    const url = settings.satsArenaPhoneRoomServerUrl?.trim() ?? "";
+    const error = phoneRoomUrlError(url);
+    if (error) {
+      throw new Error(error);
+    }
+    env.SATS_ARENA_ROOM_SERVER_URL = url.replace(/\/$/, "");
+  }
   return { payload, env };
 }
 

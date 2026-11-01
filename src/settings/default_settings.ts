@@ -40,6 +40,8 @@ export const defaultAppSettings: AppSettings = {
     spectateRemoteControlPort: 49809,
     enableRankDisplay: true,
     satsArenaMode: "off",
+    satsArenaPhoneRoomEnabled: false,
+    satsArenaPhoneRoomServerUrl: "",
     satsArenaServerUrl: "",
     satsArenaServerBinaryPath: null,
     satsArenaDolphinBinaryPath: null,

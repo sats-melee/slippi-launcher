@@ -7,12 +7,12 @@ import RadioGroup from "@mui/material/RadioGroup";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import React from "react";
+import { phoneRoomUrlError } from "sats_arena/phone_room";
 import type { SatsArenaNwcCheck, SatsArenaNwcInfo } from "sats_arena/types";
 
 import { Toggle } from "@/components/form/toggle";
 import { PathInput } from "@/components/path_input/path_input";
-import { useSatsArenaServerStore } from "@/lib/hooks/use_sats_arena_server";
-import { useSatsArenaMode, useSetting } from "@/lib/hooks/use_settings";
+import { useSetting } from "@/lib/hooks/use_settings";
 import { useToasts } from "@/lib/hooks/use_toasts";
 import { useServices } from "@/services";
 
@@ -27,24 +27,47 @@ const row = css`
 `;
 
 export const SatsArenaSettings = React.memo(() => {
-  const [mode, setMode] = useSatsArenaMode();
   return (
     <div>
       <WalletSettings />
       <CpuWalletSettings />
       <DeveloperPaymentSettings />
       <NativeGameSettings />
-      <Typography variant="caption">{Messages.previewNotice()}</Typography>
-      <SettingItem name={Messages.mode()} description={Messages.modeDescription()}>
-        <RadioGroup value={mode} onChange={(_event, value) => setMode(value as typeof mode)}>
-          <FormControlLabel value="off" label={Messages.modeOff()} control={<Radio />} />
-          <FormControlLabel value="connect" label={Messages.modeConnect()} control={<Radio />} />
-          <FormControlLabel value="host" label={Messages.modeHost()} control={<Radio />} />
-        </RadioGroup>
-      </SettingItem>
-      {mode === "connect" && <ConnectSettings />}
-      {mode === "host" && <HostSettings />}
+      <PhoneRoomSettings />
     </div>
+  );
+});
+
+export const PhoneRoomSettings = React.memo(() => {
+  const [enabled, setEnabled] = useSetting("satsArenaPhoneRoomEnabled");
+  const [serverUrl, setServerUrl] = useSetting("satsArenaPhoneRoomServerUrl");
+  const { showError } = useToasts();
+  return (
+    <SettingItem name="Phone room">
+      <Toggle
+        label="Enable phone room"
+        description="Join from a phone using the code shown in LOCAL. Changes apply next time you open LOCAL."
+        value={enabled}
+        onChange={setEnabled}
+      />
+      {enabled && (
+        <>
+          <TextSettingForm
+            value={serverUrl}
+            placeholder="https://your-server.com"
+            onSave={async (value) => {
+              const error = phoneRoomUrlError(value);
+              if (error) {
+                showError(new Error(error));
+                return;
+              }
+              await setServerUrl(value.trim().replace(/\/$/, ""));
+            }}
+          />
+          {serverUrl && <TestConnectionButton url={serverUrl} />}
+        </>
+      )}
+    </SettingItem>
   );
 });
 
@@ -193,182 +216,6 @@ const NativeGameSettings = React.memo(() => {
       <Button color="secondary" disabled={!binaryPath} onClick={() => setBinaryPath(null)}>
         {Messages.useDefault()}
       </Button>
-    </SettingItem>
-  );
-});
-
-const ConnectSettings = React.memo(() => {
-  const [serverUrl, setServerUrl] = useSetting("satsArenaServerUrl");
-  return (
-    <SettingItem name={Messages.serverUrl()} description={Messages.serverUrlDescription()}>
-      <TextSettingForm value={serverUrl} onSave={setServerUrl} placeholder="https://" />
-      <TestConnectionButton url={serverUrl} />
-    </SettingItem>
-  );
-});
-
-const HostSettings = React.memo(() => {
-  const status = useSatsArenaServerStore((store) => store.status);
-  const locked = status.state !== "stopped";
-  const [inviteCode, setInviteCode] = useSetting("satsArenaInviteCode");
-  const [port, setPort] = useSetting("satsArenaHostPort");
-  const [allowRemote, setAllowRemote] = useSetting("satsArenaHostAllowRemote");
-  const [satsPerPercent, setSatsPerPercent] = useSetting("satsArenaSatsPerPercent");
-  const [winSats, setWinSats] = useSetting("satsArenaWinSats");
-  const [maxDeposit, setMaxDeposit] = useSetting("satsArenaMaxDepositSats");
-  const [binaryPath, setBinaryPath] = useSetting("satsArenaServerBinaryPath");
-
-  return (
-    <div>
-      <ServerControls />
-      {locked && <Typography variant="caption">{Messages.restartToApply()}</Typography>}
-
-      <SettingItem name={Messages.inviteCode()} description={Messages.inviteCodeDescription()}>
-        <div css={row}>
-          <TextSettingForm value={inviteCode} onSave={setInviteCode} />
-          <Button variant="outlined" color="secondary" onClick={() => setInviteCode(generateInviteCode())}>
-            {Messages.generate()}
-          </Button>
-        </div>
-      </SettingItem>
-
-      <SettingItem name={Messages.port()}>
-        <NumberSettingForm value={port} onSave={setPort} min={1} max={65535} />
-      </SettingItem>
-      <SettingItem>
-        <Toggle
-          value={allowRemote}
-          onChange={setAllowRemote}
-          label={Messages.allowRemote()}
-          description={Messages.allowRemoteDescription()}
-        />
-      </SettingItem>
-
-      <SettingItem name={Messages.rules()}>
-        <div css={row}>
-          <NumberSettingForm
-            label={Messages.satsPerPercent()}
-            value={satsPerPercent}
-            onSave={setSatsPerPercent}
-            min={0}
-          />
-          <NumberSettingForm label={Messages.winSats()} value={winSats} onSave={setWinSats} min={0} />
-          <NumberSettingForm label={Messages.maxDepositSats()} value={maxDeposit} onSave={setMaxDeposit} min={1} />
-        </div>
-      </SettingItem>
-
-      <SettingItem name={Messages.advanced()}>
-        <SettingItem name={Messages.serverBinary()} description={Messages.serverBinaryDescription()}>
-          <PathInput value={binaryPath ?? ""} placeholder={Messages.notSet()} onSelect={setBinaryPath} />
-          <Button
-            color="secondary"
-            variant="text"
-            disabled={!binaryPath}
-            onClick={() => setBinaryPath(null)}
-            css={css`
-              margin-top: 8px;
-            `}
-          >
-            {Messages.useDefault()}
-          </Button>
-        </SettingItem>
-      </SettingItem>
-    </div>
-  );
-});
-
-const ServerControls = React.memo(() => {
-  const { satsArenaService } = useServices();
-  const { showError } = useToasts();
-  const status = useSatsArenaServerStore((store) => store.status);
-  const [logs, setLogs] = React.useState<string | null>(null);
-  const logsOpen = logs !== null;
-
-  const refreshLogs = React.useCallback(() => {
-    satsArenaService.getServerLogs().then(setLogs).catch(showError);
-  }, [satsArenaService, showError]);
-
-  // Keep the visible log fresh while it's open.
-  React.useEffect(() => {
-    if (!logsOpen) {
-      return;
-    }
-    const interval = setInterval(refreshLogs, 1000);
-    return () => clearInterval(interval);
-  }, [logsOpen, refreshLogs]);
-
-  const start = async () => {
-    const result = await satsArenaService.startServer().catch(showError);
-    if (result?.state === "stopped" && result.lastError) {
-      showError(result.lastError);
-    }
-  };
-
-  let label: string;
-  switch (status.state) {
-    case "running":
-      label = Messages.stateRunning(status.url);
-      break;
-    case "starting":
-      label = Messages.stateStarting();
-      break;
-    case "stopping":
-      label = Messages.stateStopping();
-      break;
-    default:
-      label = Messages.stateStopped();
-  }
-
-  return (
-    <SettingItem name={Messages.serverStatus()}>
-      <Typography data-testid="sats-arena-server-status">{label}</Typography>
-      {status.state === "stopped" && status.lastError && (
-        <Typography
-          color="error"
-          variant="body2"
-          css={css`
-            white-space: pre-wrap;
-          `}
-        >
-          {status.lastError}
-        </Typography>
-      )}
-      <div
-        css={css`
-          ${row};
-          margin-top: 8px;
-        `}
-      >
-        <Button variant="contained" color="primary" disabled={status.state !== "stopped"} onClick={start}>
-          {Messages.startServer()}
-        </Button>
-        <Button
-          variant="contained"
-          color="secondary"
-          disabled={status.state !== "running"}
-          onClick={() => satsArenaService.stopServer().catch(showError)}
-        >
-          {Messages.stopServer()}
-        </Button>
-        {status.state === "running" && <TestConnectionButton url={status.url} />}
-        <Button variant="text" color="secondary" onClick={() => (logs === null ? refreshLogs() : setLogs(null))}>
-          {logs === null ? Messages.showLogs() : Messages.hideLogs()}
-        </Button>
-      </div>
-      {logs !== null && (
-        <pre
-          css={css`
-            max-height: 240px;
-            overflow: auto;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 8px;
-            font-size: 12px;
-            white-space: pre-wrap;
-          `}
-        >
-          {logs || " "}
-        </pre>
-      )}
     </SettingItem>
   );
 });
@@ -582,6 +429,7 @@ const TextSettingForm = ({
   return (
     <div css={row}>
       <TextField
+        label="Room server URL"
         size="small"
         value={draft}
         placeholder={placeholder}
@@ -640,11 +488,3 @@ const NumberSettingForm = ({
     </div>
   );
 };
-
-function generateInviteCode(): string {
-  const bytes = new Uint8Array(9);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => b.toString(36).padStart(2, "0"))
-    .join("")
-    .slice(0, 12);
-}

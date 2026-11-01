@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sats Arena Live Tests"
+  short_description: "Run capped live matches and reconcile payouts"
+  default_prompt: "Use $sats-arena-live-tests to run authorized consecutive live matches within my sats budget and reconcile every payout."

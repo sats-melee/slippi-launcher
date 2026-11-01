@@ -31,7 +31,7 @@ Successful receiving checks are cached by address for 30 minutes, including
 across rounds, controller slots, and restarts. Cached receiving limits must still
 cover this match's pot. A changed, expired, or incompatible address gets checked
 again; each outgoing invoice is independently fetched and validated.
-Each human gets a separate BOLT11 entry invoice. **Pay from test wallet** sends
+Each human gets a separate BOLT11 entry invoice. **Test pay** sends
 an NWC payment from that player's wallet; Arena's normal incoming-invoice lookup
 must confirm payment before admission. Damage batches and settlement use the
 same NWC payout path as live mode. No real bitcoin is transferred.
@@ -146,10 +146,12 @@ funding and apply on the next LOCAL launch. For a reproducible agent profile,
 without changing the normal user's profile.
 
 `python3 scripts/payment-game-e2e.py --scenario cpu` builds the launcher,
-enables CPU wallets through the actual Developer options UI, selects/funds a CPU
+enables CPU wallets through Developer options, selects/funds a CPU
 and human through controllers and accessibility, observes AI damage, toggles the
 native outbound-payment checkbox, ends the match through controller input, and
-checks settlement timing. It queries receiving Sandbox wallets independently
+checks settlement timing and the visible damage matrix (including four-player
+rows/columns). It checks actual QR/footer screen positions for overlap.
+It queries receiving Sandbox wallets independently
 using the read-only Rust `sandbox_receipts` example. Evidence is saved beneath
 `.release/payment-e2e/`; a failed prerequisite records `blocked`, never `passed`.
 It also samples finished-match hit accounting through settlement and fails if
@@ -171,3 +173,32 @@ The reusable [CPU setup skill](../skills/sats-arena-sandbox/references/cpu-games
 contains the menu, funding, focus, and troubleshooting steps.
 These commands require real host network, display/session-bus and Distrobox
 access. Compiling them or running the fake-wallet tests is not an E2E pass.
+
+For consecutive CPU matches without restarting the native game, open a fresh
+isolated session and run:
+
+```sh
+python3 scripts/sandbox-agent.py --root ~/.local/share/sats-arena/cpu-session --cpu-wallets --port 9360
+ARENA_AGENT_DEBUG_PORT=9360 bash scripts/sandbox.sh local
+python3 scripts/payment-session-e2e.py --root ~/.local/share/sats-arena/cpu-session
+```
+
+This plays CPU P1 versus human P2 through a win, cancellation, and another win.
+It checks fresh invoices, cached receiving addresses, admission, actual CPU
+damage, background settlement, unchanged finished-match accounting, duplicate
+submissions, and independent wallet receipts. It compares the visible post-match
+damage grid against recorded totals, reopens **Last match**, and dismisses it
+with controller Start. It also verifies opponent names in the receiving
+Sandbox wallet’s invoice description and comment. It records next-lobby and invoice
+timings under `.release/payment-session/` and leaves the unpaid next lobby open
+for inspection. `--finishes` changes the sequence; `--play-seconds` controls the
+minimum CPU gameplay before ending each match. Use the normal five-second batch
+window for the baseline, and close this isolated game before starting another
+fresh session.
+
+For missed-payment recovery checks, add `--pay-missed-after-match`. The runner
+opens the real **Missed** log and clicks **Pay missed payments** only when a safe
+amount is eligible. Its report states whether the button was actually exercised;
+a healthy run without missed amounts does not prove that recovery path. Unknown
+sends remain excluded. Receipt audits report physical transfers separately from
+per-player allocations so a combined hash is counted once.

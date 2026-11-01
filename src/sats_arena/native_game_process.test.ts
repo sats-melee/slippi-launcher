@@ -94,6 +94,22 @@ describe("native wallet configuration", () => {
       "two decimal",
     );
   });
+  it("enables normal CPU address entry and payments with a live NWC backend", async () => {
+    const secrets = { get: vi.fn(async () => uri) };
+    const sandbox = {
+      ensure: vi.fn(async () => {
+        throw new Error("do not provision Sandbox for live CPUs");
+      }),
+    };
+    const launch = await nativeWalletLaunch({ ...settings, satsArenaCpuWallets: true }, secrets, {}, sandbox);
+    expect(launch.env.SATS_ARENA_CPU_WALLETS).toBe("1");
+    expect(launch.payload).toEqual({
+      version: 1,
+      backend: "nwc",
+      nwc_uri: uri,
+    });
+    expect(sandbox.ensure).not.toHaveBeenCalled();
+  });
   it("accepts an explicit dev URI instead of unlocking saved production credentials", async () => {
     const secrets = {
       get: vi.fn(async () => {

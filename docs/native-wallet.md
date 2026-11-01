@@ -5,6 +5,24 @@ Choose your Melee ISO, then press **LOCAL** in the launcher header or
 directly with the Arena payment panel. **ONLINE** retains the existing Slippi
 netplay launch and its in-game login. The Wallet setting applies to local Arena,
 independently of the separate server-preview mode.
+The local panel shows two players per row, with entry QR codes beside their
+balances. Verified receiving addresses collapse to a text line; **Edit** reopens
+the field. Tab and Shift+Tab move between player address fields. The two log
+toggles open a separate window so players stay in view.
+
+After a match, the sidebar shows damage dealt by each player to each opponent,
+across all stocks. Rows deal damage to columns; these percentages are separate
+from capped/rounded sat payments. The next controller Start press restores the
+player cards and QR codes. **Last match** reopens the summary between games;
+Start or Escape closes it. The last summary survives a restart. Incomplete
+tracking is marked, and older saves without pairwise totals are not shown as
+complete.
+
+Damage payment descriptions name the affected opponents, such as **Damage to
+P2, P3**. A combined final payment says when it includes damage alongside
+winnings or a refund. Descriptions stay with the original payment through
+retries and later matches. Receiving wallets show these descriptions when their
+Lightning address provider supports invoice comments.
 
 For solo testing without entering wallet addresses, click **Set up CPU test
 wallets** under **Settings → Developer options**. This prepares and
@@ -22,6 +40,34 @@ addresses, just like human cards. Enter or edit the receiving address before
 funding, then pay the CPU’s entry QR from a wallet. Its damage payouts, winnings
 and refunds go to that address. Addresses stay with their player slots between
 matches, including when a slot changes between human and CPU.
+
+The game's **Discard unsent payments** button clears queued payouts and open
+damage batches from the current and earlier matches, plus known unsent
+late-entry refunds. The confirmation shows the maximum unsent amount. Discarded
+funds stay in the host wallet, are recorded as **DISCARDED** in outbound history,
+and are never presented as paid or sent after a restart. Already-submitted
+payments keep their original invoices and continue confirmation checks; a wallet
+may still complete them. Discarding does not cancel the active match or remove
+its remaining playable funds; subsequent gameplay can create new payouts.
+
+A failed invoice request, failed payout, or payment still unconfirmed after
+12 seconds goes on **Missed**, with its amount, address and status. Other live
+payments continue, including later payments to that same address. Healthy
+payments remain automatic. **Match activity** keeps failures and receipts;
+**Outbound payments** keeps the full history.
+
+After a match ends, **Pay missed payments** combines safe missed amounts by
+receiving address within that match. It only sends never-submitted amounts or
+amounts the wallet has definitively confirmed failed. Unknown sends stay
+reserved and are checked by their original hash; the button excludes them to
+prevent duplicate payments. They leave the list if they later succeed, or become
+eligible if the wallet proves failure. A failed manual attempt returns to the
+list and waits for another click. Missed amounts, batch membership and original
+hashes survive the next lobby and restarts.
+
+Unanswered wallet requests renew the connection for later requests without
+replaying a payment. Abandoned entry invoices are checked less often, including
+after expiry, so late receipts can still be returned without constant polling.
 
 Use **Sandbox** for development: five reusable Alby NWC test wallets and four
 prefilled player addresses are prepared automatically. See [sandbox.md](sandbox.md)

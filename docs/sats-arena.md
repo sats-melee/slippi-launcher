@@ -1,5 +1,9 @@
 # Sats Arena launcher
 
+The retired Host/Connect settings have been replaced by optional
+[phone rooms](phone-rooms.md). The server-preview documentation below is retained
+for its old standalone API; it is no longer exposed in launcher settings.
+
 Use **Play local Arena** for the embedded game/sidebar flow and the saved wallet.
 See [native wallet handoff](native-wallet.md) for production and development setup.
 The server controls below remain a separate remote prototype.

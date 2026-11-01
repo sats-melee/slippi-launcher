@@ -76,7 +76,7 @@ export default function setupSatsArenaIpc({ settingsManager }: { settingsManager
   });
   ipc_satsArenaSetNwcUri.main!.handle(async ({ uri }) => secrets.set(uri));
   ipc_satsArenaClearNwcUri.main!.handle(async () => secrets.clear());
-  ipc_satsArenaCheckServer.main!.handle(async ({ url }) => checkHealth(url));
+  ipc_satsArenaCheckServer.main!.handle(async ({ url }) => checkHealth(url, true));
 
   // Leaving host mode shuts down the local server.
   settingsManager.onSettingChange("satsArenaMode", async (mode) => {

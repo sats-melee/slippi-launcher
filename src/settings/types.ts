@@ -72,6 +72,8 @@ export interface SettingsSchema {
   // Sats Arena settings. The NWC connection string is a secret and is stored
   // separately (see src/sats_arena/nwc_secret_store.ts), never in this file.
   satsArenaMode: SatsArenaMode;
+  satsArenaPhoneRoomEnabled: boolean;
+  satsArenaPhoneRoomServerUrl: string;
   satsArenaServerUrl: string;
   satsArenaServerBinaryPath: string | null;
   satsArenaDolphinBinaryPath: string | null;

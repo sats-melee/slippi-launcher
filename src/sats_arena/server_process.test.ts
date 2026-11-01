@@ -135,6 +135,18 @@ describe.skipIf(process.platform === "win32")("SatsArenaServerProcess", () => {
 });
 
 describe("checkHealth", () => {
+  it("recognizes the phone-room service health response", async () => {
+    const fetch = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response(JSON.stringify({ ok: true, service: "sats-melee-rooms", version: 1 })));
+    try {
+      expect(await checkHealth("https://arena.example.com", true)).toEqual({ ok: true, message: "Connected" });
+      fetch.mockResolvedValueOnce(new Response("ok"));
+      expect((await checkHealth("https://arena.example.com", true)).ok).toBe(false);
+    } finally {
+      fetch.mockRestore();
+    }
+  });
   it("rejects invalid URLs and non-HTTP schemes", async () => {
     expect((await checkHealth("invalid")).ok).toBe(false);
     expect((await checkHealth("file:///tmp/example")).ok).toBe(false);
