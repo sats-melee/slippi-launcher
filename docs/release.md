@@ -40,9 +40,21 @@ temporary homes and fake credentials and never send Lightning payments.
 
 # GitHub releases
 
-`build.yml` builds Linux, Windows and both macOS launcher packages on `main`,
+`build.yml` builds Linux, Windows and Intel macOS launcher packages on `main`,
 version tags (`v*`), pull requests, or manual dispatch. It retains the macOS ZIPs
 required by updater metadata and fails if a platform's installers are missing.
+
+The workflow pins the native Arena and server source commits. The native game
+comes from the same Arena build workflow used for standalone Dolphin releases. Windows
+includes the wallet checker and its Rust DLL. macOS ships an Intel launcher,
+server and Dolphin together; Apple Silicon requires Rosetta 2. Native Apple
+Silicon packages are not built until the game and its libraries support them.
+
+CI checks the staged runtime and the runtime extracted from the installers
+(and macOS updater ZIP): all required executables/libraries must be x86_64,
+the wallet checker must reject an offline invalid configuration, and the server
+must answer `/health` over loopback. Changing a dependency requires updating
+its pinned commit after its platform build succeeds.
 
 Publish a release for a pushed version tag. `release.yml` resolves that exact
 tag to a commit, waits up to 30 minutes for a successful `build.yml` run of the

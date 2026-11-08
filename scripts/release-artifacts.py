@@ -63,10 +63,9 @@ def stage(downloads, output, version):
         raise ValueError('Invalid application version')
     base = 'Slippi-Launcher-' + version
     required = {base + '-x86_64.AppImage', 'Slippi-Launcher-Setup-' + version + '.exe',
-                base + '-x64.dmg', base + '-arm64.dmg', base + '-x64-mac.zip',
-                base + '-arm64-mac.zip', 'latest.yml', 'latest-linux.yml', 'latest-mac.yml'}
-    optional = {base + '-' + arch + suffix for arch in ('x64', 'arm64')
-                for suffix in ('.dmg.blockmap', '-mac.zip.blockmap')}
+                base + '-x64.dmg', base + '-x64-mac.zip',
+                'latest.yml', 'latest-linux.yml', 'latest-mac.yml'}
+    optional = {base + '-x64' + suffix for suffix in ('.dmg.blockmap', '-mac.zip.blockmap')}
     optional.add('Slippi-Launcher-Setup-' + version + '.exe.blockmap')
     found = {}
     for path in downloads.rglob('*'):

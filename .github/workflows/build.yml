@@ -16,10 +16,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
+env:
+  ARENA_COMMIT: 4346ba6dcfbbe411d433c4bfe9b5fdf0968a94ea
+  SERVER_COMMIT: 3384425187b945e1b6b7e7e2dca3c4168e739137
+
 jobs:
   build:
     name: Test on node ${{ matrix.node-version }} and ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runner || matrix.os }}
     env:
       IS_PR: ${{ github.event_name == 'pull_request' }}
       ENABLE_CODESIGNING_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'enable-codesigning') }}
@@ -31,14 +35,15 @@ jobs:
         os: [ubuntu-latest, windows-2022, macOS-latest]
         include:
           - os: ubuntu-latest
-            arena_artifact: linux-arena
+            arena_artifact: linux-netplay
             server_artifact: sats-arena-server-linux-x86_64
           - os: windows-2022
             arena_artifact: windows-netplay
             server_artifact: sats-arena-server-windows-x86_64
           - os: macOS-latest
+            runner: macos-15-intel
             arena_artifact: macOS-netplay
-            server_artifact: sats-arena-server-macos-arm64
+            server_artifact: sats-arena-server-macos-x86_64
 
     steps:
       - name: Use Python ${{ matrix.python }}
@@ -51,7 +56,9 @@ jobs:
 
       - name: Test release artifact selection
         if: matrix.os == 'ubuntu-latest'
-        run: python3 -m unittest discover -s scripts -p 'test_release_artifacts.py'
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_release_artifacts.py'
+          python3 -m unittest discover -s scripts -p 'test_check_bundled_runtime.py'
 
       - name: Install Node.js and npm
         uses: actions/setup-node@v6
@@ -163,7 +170,8 @@ jobs:
           github_token: ${{ secrets.CROSS_REPO_TOKEN }}
           repo: sats-melee/Ishiiruka
           workflow: pr-build.yml
-          branch: ci/arena-builds
+          commit: ${{ env.ARENA_COMMIT }}
+          event: push
           workflow_conclusion: success
           name: ${{ matrix.arena_artifact }}
           path: native-dist
@@ -174,7 +182,8 @@ jobs:
           github_token: ${{ secrets.CROSS_REPO_TOKEN }}
           repo: sats-melee/sats-arena
           workflow: ci.yml
-          branch: main
+          commit: ${{ env.SERVER_COMMIT }}
+          event: push
           workflow_conclusion: success
           name: ${{ matrix.server_artifact }}
           path: server-dist
@@ -182,6 +191,7 @@ jobs:
       - name: Stage native Arena runtime (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
+          unzip -q native-dist/*-linux-netplay.zip -d native-dist
           chmod +x native-dist/Sats-Arena-x86_64.AppImage
           (cd native-dist && ./Sats-Arena-x86_64.AppImage --appimage-extract >/dev/null)
           python3 scripts/stage-native.py --appimage-dir native-dist/squashfs-root
@@ -194,6 +204,7 @@ jobs:
           mkdir -p assets/include/sats-arena
           7z x -y native-dist/*.zip -o"$RUNNER_TEMP/arena-win" >/dev/null
           cp "$RUNNER_TEMP/arena-win/Slippi Dolphin.exe" assets/include/sats-arena/dolphin-emu.exe
+          cp "$RUNNER_TEMP/arena-win/sats-arena-wallet-check.exe" assets/include/sats-arena/
           cp "$RUNNER_TEMP/arena-win/"*.dll assets/include/sats-arena/
           cp -r "$RUNNER_TEMP/arena-win/Sys" assets/include/sats-arena/Sys
           cp server-dist/sats-arena-server.exe assets/include/sats-arena/
@@ -208,6 +219,9 @@ jobs:
           cp server-dist/sats-arena-server assets/include/sats-arena/
           chmod +x assets/include/sats-arena/sats-arena-server
 
+      - name: Check staged runtime architecture and executables
+        run: python scripts/check-bundled-runtime.py assets/include/sats-arena
+
       - name: Build App
         shell: bash
         working-directory: ${{ github.workspace }}
@@ -220,6 +234,35 @@ jobs:
           USE_HARD_LINKS: false # because of https://github.com/electron-userland/electron-builder/issues/3179
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_FOR_PULL_REQUEST: ${{ env.IS_PR != 'true' || env.ENABLE_CODESIGNING_LABEL == 'true' }}
+      - name: Check runtime extracted from Linux installer
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          release_version=$(node -p 'require("./release/app/package.json").version')
+          package="$GITHUB_WORKSPACE/release/build/Slippi-Launcher-$release_version-x86_64.AppImage"
+          chmod +x "$package"
+          mkdir -p "$RUNNER_TEMP/launcher-install"
+          (cd "$RUNNER_TEMP/launcher-install" && "$package" --appimage-extract >/dev/null)
+          python scripts/check-bundled-runtime.py "$RUNNER_TEMP/launcher-install/squashfs-root/resources/assets/include/sats-arena"
+      - name: Check runtime extracted from Windows installer
+        if: matrix.os == 'windows-2022'
+        shell: bash
+        run: |
+          release_version=$(node -p 'require("./release/app/package.json").version')
+          7z x -y "release/build/Slippi-Launcher-Setup-$release_version.exe" -o"$RUNNER_TEMP/launcher-install" >/dev/null
+          7z x -y "$RUNNER_TEMP/launcher-install/\$PLUGINSDIR/app-64.7z" -o"$RUNNER_TEMP/launcher-app" >/dev/null
+          python scripts/check-bundled-runtime.py "$RUNNER_TEMP/launcher-app/resources/assets/include/sats-arena"
+      - name: Check runtime extracted from macOS installer and updater
+        if: matrix.os == 'macOS-latest'
+        shell: bash
+        run: |
+          release_version=$(node -p 'require("./release/app/package.json").version')
+          hdiutil attach -nobrowse -mountpoint /tmp/launcher-dmg "release/build/Slippi-Launcher-$release_version-x64.dmg"
+          python scripts/check-bundled-runtime.py "/tmp/launcher-dmg/Slippi Launcher.app/Contents/Resources/assets/include/sats-arena"
+          hdiutil detach /tmp/launcher-dmg
+          mkdir -p "$RUNNER_TEMP/launcher-updater"
+          ditto -x -k "release/build/Slippi-Launcher-$release_version-x64-mac.zip" "$RUNNER_TEMP/launcher-updater"
+          python scripts/check-bundled-runtime.py "$RUNNER_TEMP/launcher-updater/Slippi Launcher.app/Contents/Resources/assets/include/sats-arena"
       - name: Run tests
         run: |
           npm run typecheck
@@ -244,10 +287,8 @@ jobs:
               test -s artifacts/latest.yml
               ;;
             macOS)
-              for release_arch in x64 arm64; do
-                test -s "artifacts/Slippi-Launcher-$release_version-$release_arch.dmg"
-                test -s "artifacts/Slippi-Launcher-$release_version-$release_arch-mac.zip"
-              done
+              test -s "artifacts/Slippi-Launcher-$release_version-x64.dmg"
+              test -s "artifacts/Slippi-Launcher-$release_version-x64-mac.zip"
               test -s artifacts/latest-mac.yml
               ;;
           esac

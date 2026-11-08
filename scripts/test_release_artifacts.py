@@ -22,8 +22,7 @@ SHA = '1' * 40
 VERSION = '1.2.3'
 REQUIRED = {
     'Slippi-Launcher-1.2.3-x86_64.AppImage', 'Slippi-Launcher-Setup-1.2.3.exe',
-    'Slippi-Launcher-1.2.3-x64.dmg', 'Slippi-Launcher-1.2.3-arm64.dmg',
-    'Slippi-Launcher-1.2.3-x64-mac.zip', 'Slippi-Launcher-1.2.3-arm64-mac.zip',
+    'Slippi-Launcher-1.2.3-x64.dmg', 'Slippi-Launcher-1.2.3-x64-mac.zip',
     'latest.yml', 'latest-linux.yml', 'latest-mac.yml',
 }
 
@@ -189,10 +188,11 @@ class StagingTests(unittest.TestCase):
         return release.stage(self.downloads, self.output, VERSION)
 
     def test_stages_only_expected_release_assets_and_keeps_source_bytes(self):
-        optional = 'Slippi-Launcher-1.2.3-arm64-mac.zip.blockmap'
+        optional = 'Slippi-Launcher-1.2.3-x64-mac.zip.blockmap'
         self.asset(optional, b'optional update archive')
         for ignored in ('builder-debug.yml', 'builder-effective-config.yaml', 'main.js.map',
-                        'Slippi-Launcher-0.0.1-x64.dmg', 'notes.txt', 'unrelated.exe'):
+                        'Slippi-Launcher-0.0.1-x64.dmg', 'Slippi-Launcher-1.2.3-arm64.dmg',
+                        'Slippi-Launcher-1.2.3-arm64-mac.zip', 'notes.txt', 'unrelated.exe'):
             self.asset(ignored)
         self.assertEqual(self.stage(), sorted(REQUIRED | {optional}))
         self.assertEqual({p.name for p in self.output.iterdir()}, REQUIRED | {optional})
