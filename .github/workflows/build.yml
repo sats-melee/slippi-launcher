@@ -72,9 +72,9 @@ jobs:
           path: |
             node_modules
             release/app/node_modules
-          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('package-lock.json', 'release/app/package-lock.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-node-${{ matrix.node-version }}-${{ hashFiles('package-lock.json', 'release/app/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-${{ matrix.node-version }}-
+            ${{ runner.os }}-${{ runner.arch }}-node-${{ matrix.node-version }}-
 
       - name: Cache npm cache
         uses: actions/cache@v5
@@ -91,9 +91,9 @@ jobs:
             ~/.cache/electron
             ~/Library/Caches/electron
             ${{ runner.os == 'Windows' && '~/AppData/Local/electron/Cache' || '' }}
-          key: ${{ runner.os }}-electron-${{ matrix.node-version }}-${{ hashFiles('package-lock.json', 'release/app/package-lock.json') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-electron-${{ matrix.node-version }}-${{ hashFiles('package-lock.json', 'release/app/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-electron-${{ matrix.node-version }}-
+            ${{ runner.os }}-${{ runner.arch }}-electron-${{ matrix.node-version }}-
 
       - name: Install dependencies
         run: |
