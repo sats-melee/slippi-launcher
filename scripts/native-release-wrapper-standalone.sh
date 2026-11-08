@@ -60,7 +60,8 @@ target.chmod(0o700)
 print(target)
 ' "$bundle_dir" '@NATIVE_BUNDLE_SHA256@')
 
-# The bundled lib/ holds every dependency; the system is only a fallback.
+# Keep host desktop/driver libraries together; bundled older SONAMEs are fallbacks.
+system_libs=/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu:/usr/lib:/lib
 pulse_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pulse/native"
 if [ -S "$pulse_socket" ]; then
     export PULSE_SERVER="${PULSE_SERVER:-unix:$pulse_socket}"
@@ -68,5 +69,5 @@ if [ -S "$pulse_socket" ]; then
 fi
 program=$(basename -- "$0")
 case "$program" in dolphin-emu|sats-arena-wallet-check) ;; *) exit 2 ;; esac
-exec env GDK_BACKEND=x11 LD_LIBRARY_PATH="$runtime_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
+exec env GDK_BACKEND=x11 LD_LIBRARY_PATH="$system_libs:$runtime_dir/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
     "$runtime_dir/$program" "$@"

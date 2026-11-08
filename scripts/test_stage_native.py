@@ -173,6 +173,43 @@ class StageNativeTests(unittest.TestCase):
         self.assertIn("Native staging failed:", result.stderr)
         self.assertEqual((self.output / "native/.bundle-sha256").read_text().strip(), digest)
 
+    @unittest.skipUnless(sys.platform.startswith("linux") and shutil.which("cc"), "requires a Linux C compiler")
+    def test_appimage_wrapper_prefers_host_libraries_and_keeps_bundled_fallbacks(self):
+        appimage = self.root / "extracted AppImage"
+        binaries = appimage / "usr/bin"
+        libraries = appimage / "usr/lib"
+        binaries.mkdir(parents=True)
+        libraries.mkdir()
+        for source, destination in (
+            (self.checker, binaries / "sats-arena-wallet-check"),
+            (self.audio, binaries / "alsa-pulse.conf"),
+            (self.library, libraries / self.library.name),
+            (self.rust_library, libraries / self.rust_library.name),
+        ):
+            shutil.copy2(source, destination)
+        shutil.copytree(self.sys_file.parent.parent, binaries / "Sys")
+
+        def compile_c(source, destination, *arguments):
+            subprocess.run(["cc", "-x", "c", "-", "-o", str(destination), *arguments],
+                           input=source, text=True, check=True, capture_output=True)
+
+        compile_c('const char *zlibVersion(void) { return "bundled-shadow"; }',
+                  libraries / "libz.so.1", "-shared", "-fPIC", "-Wl,-soname,libz.so.1")
+        compile_c('int arena_staging_fixture(void) { return 7; }',
+                  libraries / "libarena-staging-fixture.so.1", "-shared", "-fPIC",
+                  "-Wl,-soname,libarena-staging-fixture.so.1")
+        compile_c('#include <stdio.h>\nextern const char *zlibVersion(void);\n'
+                  'extern int arena_staging_fixture(void);\n'
+                  'int main(void) { puts(zlibVersion()); return arena_staging_fixture() != 7; }\n',
+                  binaries / "dolphin-emu", "-L" + str(libraries),
+                  "-Wl,-l:libz.so.1", "-Wl,-l:libarena-staging-fixture.so.1")
+        subprocess.run([sys.executable, str(STAGE), "--appimage-dir", str(appimage),
+                        "--output", str(self.output)], check=True, capture_output=True)
+        env = {**os.environ, "XDG_DATA_HOME": str(self.root / "runtime data")}
+        result = subprocess.run([str(self.output / "dolphin-emu")], env=env,
+                                check=True, capture_output=True, text=True)
+        self.assertRegex(result.stdout.strip(), r"^\d+\.\d+")
+
 
 if __name__ == "__main__":
     unittest.main()
