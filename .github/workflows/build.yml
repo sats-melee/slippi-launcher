@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
     paths-ignore:
       - "**.md"
 
@@ -46,6 +48,10 @@ jobs:
 
       - name: Check out Git repository
         uses: actions/checkout@v6
+
+      - name: Test release artifact selection
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 -m unittest discover -s scripts -p 'test_release_artifacts.py'
 
       - name: Install Node.js and npm
         uses: actions/setup-node@v6
@@ -206,9 +212,10 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         run: |
-          echo ${{ secrets.ENVFILE }} > .env
+          printf '%s\n' "$ENVFILE" > .env
           npm run package
         env:
+          ENVFILE: ${{ secrets.ENVFILE }}
           NODE_OPTIONS: "--max-old-space-size=8192"
           USE_HARD_LINKS: false # because of https://github.com/electron-userland/electron-builder/issues/3179
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -224,15 +231,29 @@ jobs:
       - name: Prepare artifacts
         shell: bash
         run: |
-          msg="$(git log -1 --no-merges --pretty=%B | head -n 1)"
-          if [[ ! "$msg" =~ ^release:.* ]];
-          then
-            rm release/build/*-mac.zip || true;
-          fi
           mkdir artifacts
           mv release/build/{*.exe*,*.deb,*.AppImage,*.dmg*,*.zip,*.yml} artifacts || true
+          release_version=$(node -p 'require("./release/app/package.json").version')
+          case "$RUNNER_OS" in
+            Linux)
+              test -s "artifacts/Slippi-Launcher-$release_version-x86_64.AppImage"
+              test -s artifacts/latest-linux.yml
+              ;;
+            Windows)
+              test -s "artifacts/Slippi-Launcher-Setup-$release_version.exe"
+              test -s artifacts/latest.yml
+              ;;
+            macOS)
+              for release_arch in x64 arm64; do
+                test -s "artifacts/Slippi-Launcher-$release_version-$release_arch.dmg"
+                test -s "artifacts/Slippi-Launcher-$release_version-$release_arch-mac.zip"
+              done
+              test -s artifacts/latest-mac.yml
+              ;;
+          esac
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: ${{matrix.os}}
           path: artifacts
+          if-no-files-found: error

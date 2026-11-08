@@ -37,3 +37,37 @@ The local fork disables automatic installation of upstream launcher updates. Upd
 
 Run `make test` for isolated installer and bundle integration tests. These use
 temporary homes and fake credentials and never send Lightning payments.
+
+# GitHub releases
+
+`build.yml` builds Linux, Windows and both macOS launcher packages on `main`,
+version tags (`v*`), pull requests, or manual dispatch. It retains the macOS ZIPs
+required by updater metadata and fails if a platform's installers are missing.
+
+Publish a release for a pushed version tag. `release.yml` resolves that exact
+tag to a commit, waits up to 30 minutes for a successful `build.yml` run of the
+same commit, and downloads its three named platform artifacts. It requires all
+installers, updater ZIPs and metadata before uploading to the existing release.
+It never substitutes artifacts from a later `main` commit. The job grants its
+own GITHUB_TOKEN `actions: read` and `contents: write`; release uploads do not
+need the cross-repository PAT used to fetch native build dependencies.
+
+For a rehearsal, create a temporary draft release for a test tag containing the
+workflow changes, then dispatch **Upload Latest Artifacts to Release** with:
+
+- `tag`: the draft release's tag.
+- `build_run_id`: optional explicit successful build of that tag's commit.
+- `upload`: false validates only; true uploads to the existing draft/release.
+
+Inspect the job summary's commit, build URL and asset list. A draft rehearsal
+does not change the public latest release or website downloads. Delete only the
+rehearsal draft and its test tag after checking the assets. Missing or expired
+artifacts fail closed; rebuild a tag containing the current build workflow
+before retrying. Older builds that discarded updater ZIPs are not complete
+release sources.
+
+Run the release-selection checks locally with:
+
+```sh
+python3 -m unittest discover -s scripts -p 'test_release_artifacts.py'
+```

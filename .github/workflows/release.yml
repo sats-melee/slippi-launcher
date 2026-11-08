@@ -2,47 +2,75 @@ name: Upload Latest Artifacts to Release
 
 on:
   release:
-    types: [released]
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to validate or repair
+        required: true
+        type: string
+      build_run_id:
+        description: Optional successful build run for the same tag commit
+        required: false
+        type: string
+      upload:
+        description: Upload assets to the existing release (false only validates)
+        default: false
+        type: boolean
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
 
 jobs:
-  wait-for-builds:
-    name: Wait for all builds to complete
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-2022, macOS-latest]
-    steps:
-      # The org caps GITHUB_TOKEN at read-only; the PAT secret can read
-      # checks/artifacts and upload release assets.
-      - name: Wait for build job - ${{ matrix.os }}
-        uses: lewagon/wait-on-check-action@v1.7.0
-        with:
-          ref: ${{ github.event.release.target_commitish }}
-          check-name: 'Test on node 24.x and ${{ matrix.os }}'
-          repo-token: ${{ secrets.CROSS_REPO_TOKEN }}
-          wait-interval: 10
-          allowed-conclusions: success
-
   package:
     name: Release Launcher
     runs-on: ubuntu-latest
-    needs: wait-for-builds
+    timeout-minutes: 40
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      BUILD_RUN_ID: ${{ inputs.build_run_id }}
     steps:
-      - name: Download latest artifacts
-        uses: dawidd6/action-download-artifact@v21
+      - uses: actions/checkout@v6
         with:
-          github_token: ${{ secrets.CROSS_REPO_TOKEN }}
-          workflow: build.yml
-          commit: ${{ github.sha }}
-      - name: Flatten Directory structure
+          fetch-depth: 0
+      - name: Select the successful build of the exact tag commit
+        id: source
+        shell: bash
         run: |
-          find ./ -mindepth 2 -type f -not -name "builder-debug*" -exec mv -t ./ -i '{}' +
-          find . -type d -empty -delete
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
+          args=(--tag "$RELEASE_TAG")
+          if [[ -n "$BUILD_RUN_ID" ]]; then args+=(--run-id "$BUILD_RUN_ID"); fi
+          python3 scripts/release-artifacts.py resolve "${args[@]}"
+      - name: Download the selected artifacts
+        uses: actions/download-artifact@v8
         with:
-          repo_token: ${{ secrets.CROSS_REPO_TOKEN }}
-          file: ./*
-          tag: ${{ github.ref }}
-          overwrite: true
-          file_glob: true
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.source.outputs.run_id }}
+          artifact-ids: ${{ steps.source.outputs.artifact_ids }}
+          path: release-artifacts
+      - name: Validate and stage release assets
+        env:
+          APP_VERSION: ${{ steps.source.outputs.version }}
+        run: |
+          python3 scripts/release-artifacts.py stage --downloads release-artifacts --output release-assets --version "$APP_VERSION"
+      - name: Upload to the existing release
+        if: github.event_name == 'release' || inputs.upload
+        run: |
+          gh release view --repo "$GITHUB_REPOSITORY" -- "$RELEASE_TAG" >/dev/null
+          gh release upload --repo "$GITHUB_REPOSITORY" --clobber -- "$RELEASE_TAG" release-assets/*
+      - name: Record release source
+        env:
+          BUILD_SHA: ${{ steps.source.outputs.sha }}
+          BUILD_ID: ${{ steps.source.outputs.run_id }}
+        run: |
+          {
+            printf 'Tag: `%s`\n\nCommit: `%s`\n\n' "$RELEASE_TAG" "$BUILD_SHA"
+            printf 'Build: https://github.com/%s/actions/runs/%s\n\n' "$GITHUB_REPOSITORY" "$BUILD_ID"
+            printf 'Assets:\n'
+            find release-assets -maxdepth 1 -type f -printf '\n- %f\n' | sort
+          } >> "$GITHUB_STEP_SUMMARY"
