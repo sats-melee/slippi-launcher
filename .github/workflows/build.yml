@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ARENA_COMMIT: 322e581a270fc50d974c6deea6f9452e11fcf1fe
+  ARENA_COMMIT: 3c88c3bc3531141b1a507846eccdfa9271940308
   SERVER_COMMIT: 5afa6376231ae7d81622f59a61a92ad5c12bbb6d
 
 jobs:
