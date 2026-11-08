@@ -46,7 +46,8 @@ required by updater metadata and fails if a platform's installers are missing.
 
 The workflow pins the native Arena and server source commits. The native game
 comes from the same Arena build workflow used for standalone Dolphin releases. Windows
-includes the wallet checker and its Rust DLL. macOS ships an Intel launcher,
+includes the wallet checker, its Rust DLL, and the Microsoft C++ runtime DLLs.
+macOS ships an Intel launcher,
 server and Dolphin together; Apple Silicon requires Rosetta 2. Native Apple
 Silicon packages are not built until the game and its libraries support them.
 

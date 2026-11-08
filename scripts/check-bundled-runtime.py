@@ -41,7 +41,8 @@ def check(root, platform):
     elif platform == 'win32':
         game = root / 'dolphin-emu.exe'
         checker = root / 'sats-arena-wallet-check.exe'
-        libraries = [root / name for name in ('sats_arena_local.dll', 'slippi_rust_extensions.dll')]
+        libraries = [root / name for name in ('sats_arena_local.dll', 'slippi_rust_extensions.dll',
+                                              'msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')]
         resources = root / 'Sys'
     else:
         game = root / 'native' / 'dolphin-emu'

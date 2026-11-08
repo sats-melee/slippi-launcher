@@ -59,7 +59,8 @@ class BundleChecks(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             for name in ('dolphin-emu.exe', 'sats-arena-wallet-check.exe', 'sats-arena-server.exe',
-                         'sats_arena_local.dll', 'slippi_rust_extensions.dll'):
+                         'sats_arena_local.dll', 'slippi_rust_extensions.dll', 'msvcp140.dll',
+                         'vcruntime140.dll', 'vcruntime140_1.dll'):
                 (root / name).write_bytes(header('pe'))
             (root / 'Sys').mkdir()
             (root / 'Sys' / 'resource').write_bytes(b'game resource')
@@ -83,6 +84,18 @@ class BundleChecks(unittest.TestCase):
                     self.assertNotEqual(execute.call_args.kwargs['cwd'], str(root))
                     start.return_value.terminate.assert_called_once()
                     start.return_value.wait.assert_called_once_with(timeout=5)
+
+    def test_missing_windows_crt_fails_even_when_the_host_might_have_it_installed(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for name in ('dolphin-emu.exe', 'sats-arena-wallet-check.exe', 'sats-arena-server.exe',
+                         'sats_arena_local.dll', 'slippi_rust_extensions.dll', 'msvcp140.dll'):
+                (root / name).write_bytes(header('pe'))
+            with patch.object(runtime.subprocess, 'run') as execute:
+                with self.assertRaises(FileNotFoundError) as error:
+                    runtime.check(root, 'win32')
+                self.assertEqual(Path(error.exception.filename).name, 'vcruntime140.dll')
+                execute.assert_not_called()
 
 
 if __name__ == '__main__':
