@@ -60,6 +60,8 @@ describe("native wallet configuration", () => {
     const launch = await nativeWalletLaunch(settings, secrets, {
       PATH: "/test",
       SATS_ARENA_FAKE_LOCAL: "0",
+      SATS_ARENA_NETPLAY_ROOMS: "1",
+      SATS_ARENA_NETPLAY_FILE: "/stale/descriptor.json",
     });
     expect(launch.payload).toEqual({
       version: 1,
@@ -69,6 +71,8 @@ describe("native wallet configuration", () => {
     expect(launch.env.SATS_ARENA_WALLET_CONFIG).toBe("stdin");
     expect(launch.env.SATS_ARENA_NWC_URI).toBeUndefined();
     expect(launch.env.SATS_ARENA_FAKE_LOCAL).toBeUndefined();
+    expect(launch.env.SATS_ARENA_NETPLAY_ROOMS).toBeUndefined();
+    expect(launch.env.SATS_ARENA_NETPLAY_FILE).toBeUndefined();
     expect(launch.env.SATS_ARENA_SATS_PER_PERCENT).toBe("1");
     expect(launch.env.SATS_ARENA_ENTRY_SATS).toBe("400");
     expect(launch.env.SATS_ARENA_BATCH_SECONDS).toBe("5");
@@ -243,6 +247,91 @@ describe.skipIf(process.platform === "win32")("native game private stdin handoff
     expect(report!.lines).toBe(0);
     expect(report!.transport).toBeUndefined();
     expect(report!.uriInEnvironment).toBeNull();
+    expect(get).not.toHaveBeenCalled();
+  });
+  it("opens isolated room menus using the phone server without reading wallets", async () => {
+    settings.satsArenaPhoneRoomEnabled = false;
+    settings.satsArenaPhoneRoomServerUrl = "https://arena.example.com/";
+    const get = vi.fn(async () => {
+      throw new Error("Wallet must stay locked");
+    });
+    const ensure = vi.fn(async () => {
+      throw new Error("Sandbox must stay untouched");
+    });
+    vi.stubEnv("SATS_ARENA_NWC_URI", uri);
+    vi.stubEnv("SATS_ARENA_NETPLAY_FILE", "/stale/descriptor.json");
+    const game = new SatsArenaNativeGame(
+      { get: () => ({ settings }) } as SettingsManager,
+      { get } as unknown as NwcSecretStore,
+      { ensure } as never,
+    );
+    await game.startRooms();
+    const reportPath = path.join(folder, "report.json");
+    let report: Record<string, unknown> | undefined;
+    for (let i = 0; i < 100; ++i) {
+      try {
+        report = JSON.parse(await readFile(reportPath, "utf8"));
+        break;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    }
+    expect(report).toMatchObject({
+      rooms: "1",
+      roomServer: "https://arena.example.com",
+      paymentHost: "0",
+      payload: null,
+      lines: 0,
+      uriInEnvironment: null,
+    });
+    expect(report!.descriptor).toBeUndefined();
+    expect(report!.transport).toBeUndefined();
+    expect(report!.args).toEqual([
+      "-b",
+      "-e",
+      settings.isoPath,
+      "-u",
+      path.join(folder, "sats-arena", "dolphin-room-user"),
+    ]);
+    const ini = await readFile(path.join(folder, "sats-arena/dolphin-room-user/GameSettings/GALE01.ini"), "utf8");
+    expect(ini).toContain("[Gecko_Disabled]\n$Boot to CSS");
+    expect(ini).not.toContain("38600002");
+    expect(get).not.toHaveBeenCalled();
+    expect(ensure).not.toHaveBeenCalled();
+  });
+  it("rejects an invalid room server without unlocking the wallet", async () => {
+    settings.satsArenaPhoneRoomServerUrl = "http://remote.example.com";
+    const get = vi.fn();
+    const game = new SatsArenaNativeGame(
+      { get: () => ({ settings }) } as SettingsManager,
+      { get } as unknown as NwcSecretStore,
+    );
+    await expect(game.startRooms()).rejects.toThrow("Configure the room server");
+    expect(get).not.toHaveBeenCalled();
+    await expect(readFile(path.join(folder, "report.json"))).rejects.toThrow();
+  });
+  it("uses the deployed room server for existing installs with an empty URL", async () => {
+    settings.satsArenaPhoneRoomServerUrl = "";
+    const get = vi.fn();
+    const game = new SatsArenaNativeGame(
+      { get: () => ({ settings }) } as SettingsManager,
+      { get } as unknown as NwcSecretStore,
+    );
+    await game.startRooms();
+    let report: Record<string, unknown> | undefined;
+    for (let i = 0; i < 100; ++i) {
+      try {
+        report = JSON.parse(await readFile(path.join(folder, "report.json"), "utf8"));
+        break;
+      } catch {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    }
+    expect(report).toMatchObject({
+      rooms: "1",
+      roomServer: "https://melee.landaverde.io",
+      payload: null,
+    });
     expect(get).not.toHaveBeenCalled();
   });
   it("spawns a child that receives exactly one config line, with no URI in args or production env", async () => {

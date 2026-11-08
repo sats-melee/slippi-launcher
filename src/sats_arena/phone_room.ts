@@ -1,3 +1,5 @@
+export const DEFAULT_ROOM_SERVER_URL = "https://melee.landaverde.io";
+
 /** Room URLs carry no wallet credentials and use HTTPS outside local development. */
 export function phoneRoomUrlError(value: string): string | null {
   try {

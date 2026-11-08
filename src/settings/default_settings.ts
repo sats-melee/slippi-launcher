@@ -2,6 +2,7 @@ import { app } from "electron";
 import log from "electron-log";
 import path from "path";
 
+import { DEFAULT_ROOM_SERVER_URL } from "../sats_arena/phone_room";
 import type { AppSettings } from "./types";
 
 function getDefaultRootSlpPath(): string {
@@ -41,7 +42,7 @@ export const defaultAppSettings: AppSettings = {
     enableRankDisplay: true,
     satsArenaMode: "off",
     satsArenaPhoneRoomEnabled: false,
-    satsArenaPhoneRoomServerUrl: "",
+    satsArenaPhoneRoomServerUrl: DEFAULT_ROOM_SERVER_URL,
     satsArenaServerUrl: "",
     satsArenaServerBinaryPath: null,
     satsArenaDolphinBinaryPath: null,

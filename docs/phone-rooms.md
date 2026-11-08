@@ -1,5 +1,25 @@
 # Phone rooms
 
+## Online games
+
+**Online** in the launcher opens Melee in room mode. Choose **Create Room** or
+**Join Room** in the game's online menu. The default room server is
+`https://melee.landaverde.io`; Settings → Developer options → Room server can
+point at another server. Existing installs with an empty URL use the default.
+
+Choose two to four players and FFA/teams in the multiplayer panel's **Room
+options** before creating a room. The default is four players. Share the
+eight-character online room code with the other players. A paid room collects
+each player's entry before starting; entries and payouts are handled by the
+room server.
+
+After a game settles, **Next match** keeps the room and its players while
+starting a fresh match. Guests can **Leave room**; the host can **Close room**.
+These controls keep Dolphin open. The panel can be hidden from its header or
+with **Ctrl+Shift+M**.
+
+## Phone companions for local games
+
 Enable **Phone room** in Settings → Developer options and save the URL of your
 self-hosted room service. This replaces the retired Host/Connect controls.
 Open LOCAL again to apply the setting. The native sidebar shows the room's

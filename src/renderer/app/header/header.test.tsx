@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   isoPath: "/games/melee.iso" as string | null,
   launch: vi.fn(),
   launchLocal: vi.fn(async () => undefined),
+  launchRooms: vi.fn(async () => undefined),
   ready: true,
   open: vi.fn(),
   showError: vi.fn(),
@@ -17,18 +18,32 @@ vi.mock("@/lib/hooks/use_settings", () => ({
   useSettings: (select: (state: { settings: { isoPath: string | null } }) => unknown) =>
     select({ settings: { isoPath: mocks.isoPath } }),
 }));
-vi.mock("@/lib/hooks/use_settings_modal", () => ({ useSettingsModal: () => ({ open: mocks.open }) }));
-vi.mock("@/lib/hooks/use_toasts", () => ({ useToasts: () => ({ showError: mocks.showError }) }));
-vi.mock("@/lib/dolphin/use_dolphin_actions", () => ({ useDolphinActions: () => ({ launchNetplay: mocks.launch }) }));
+vi.mock("@/lib/hooks/use_settings_modal", () => ({
+  useSettingsModal: () => ({ open: mocks.open }),
+}));
+vi.mock("@/lib/hooks/use_toasts", () => ({
+  useToasts: () => ({ showError: mocks.showError }),
+}));
+vi.mock("@/lib/dolphin/use_dolphin_actions", () => ({
+  useDolphinActions: () => ({ launchNetplay: mocks.launch }),
+}));
 vi.mock("@/lib/dolphin/use_dolphin_store", () => ({
   DolphinStatus: { READY: "ready" },
   useDolphinStore: (select: (state: { netplayStatus: string }) => unknown) =>
     select({ netplayStatus: mocks.ready ? "ready" : "updating" }),
 }));
 vi.mock("@/services", () => ({
-  useServices: () => ({ dolphinService: {}, satsArenaService: { launchLocalGame: mocks.launchLocal } }),
+  useServices: () => ({
+    dolphinService: {},
+    satsArenaService: {
+      launchLocalGame: mocks.launchLocal,
+      launchRoomGame: mocks.launchRooms,
+    },
+  }),
 }));
-vi.mock("@/styles/platform_title_bar_styles", () => ({ platformTitleBarStyles: () => "" }));
+vi.mock("@/styles/platform_title_bar_styles", () => ({
+  platformTitleBarStyles: () => "",
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -54,13 +69,12 @@ describe("Arena header", () => {
     expect(screen.queryByText("Log in")).toBeNull();
   });
 
-  it("keeps Online disabled and never launches netplay", () => {
+  it("launches the room menus without official Slippi netplay", async () => {
     showHeader();
     fireEvent.click(screen.getByRole("button", { name: "Online" }));
-    expect((screen.getByRole("button", { name: "Online" }) as HTMLButtonElement).disabled).toBe(true);
+    await waitFor(() => expect(mocks.launchRooms).toHaveBeenCalledOnce());
     expect(mocks.launch).not.toHaveBeenCalled();
     expect(mocks.launchLocal).not.toHaveBeenCalled();
-    expect(mocks.open).not.toHaveBeenCalled();
   });
 
   it("opens game setup when Local is pressed without an ISO", () => {
@@ -70,6 +84,34 @@ describe("Arena header", () => {
     expect(mocks.launch).not.toHaveBeenCalled();
     expect(mocks.launchLocal).not.toHaveBeenCalled();
     expect(mocks.open).toHaveBeenCalledWith("/settings/melee-options");
+  });
+
+  it("opens game setup when Online is pressed without an ISO", () => {
+    mocks.isoPath = null;
+    showHeader();
+    fireEvent.click(screen.getByRole("button", { name: "Online" }));
+    expect(mocks.launchRooms).not.toHaveBeenCalled();
+    expect(mocks.launch).not.toHaveBeenCalled();
+    expect(mocks.open).toHaveBeenCalledWith("/settings/melee-options");
+  });
+
+  it("prevents a second game while Online is launching and shows startup errors", async () => {
+    let fail!: (error: Error) => void;
+    mocks.launchRooms.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          fail = reject;
+        }),
+    );
+    showHeader();
+    fireEvent.click(screen.getByRole("button", { name: "Online" }));
+    expect((screen.getByRole("button", { name: "Local" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Local" }));
+    expect(mocks.launchLocal).not.toHaveBeenCalled();
+    const error = new Error("Could not open room menus");
+    fail(error);
+    await waitFor(() => expect(mocks.showError).toHaveBeenCalledWith(error));
+    expect((screen.getByRole("button", { name: "Online" }) as HTMLButtonElement).disabled).toBe(false);
   });
 
   it("launches local Arena independently of the online Dolphin installation", async () => {

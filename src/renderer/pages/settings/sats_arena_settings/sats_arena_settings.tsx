@@ -7,7 +7,7 @@ import RadioGroup from "@mui/material/RadioGroup";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { phoneRoomUrlError } from "sats_arena/phone_room";
+import { DEFAULT_ROOM_SERVER_URL, phoneRoomUrlError } from "sats_arena/phone_room";
 import type { SatsArenaNwcCheck, SatsArenaNwcInfo } from "sats_arena/types";
 
 import { Toggle } from "@/components/form/toggle";
@@ -43,30 +43,26 @@ export const PhoneRoomSettings = React.memo(() => {
   const [serverUrl, setServerUrl] = useSetting("satsArenaPhoneRoomServerUrl");
   const { showError } = useToasts();
   return (
-    <SettingItem name="Phone room">
+    <SettingItem name="Room server">
       <Toggle
         label="Enable phone room"
         description="Join from a phone using the code shown in LOCAL. Changes apply next time you open LOCAL."
         value={enabled}
         onChange={setEnabled}
       />
-      {enabled && (
-        <>
-          <TextSettingForm
-            value={serverUrl}
-            placeholder="https://your-server.com"
-            onSave={async (value) => {
-              const error = phoneRoomUrlError(value);
-              if (error) {
-                showError(new Error(error));
-                return;
-              }
-              await setServerUrl(value.trim().replace(/\/$/, ""));
-            }}
-          />
-          {serverUrl && <TestConnectionButton url={serverUrl} />}
-        </>
-      )}
+      <TextSettingForm
+        value={serverUrl || DEFAULT_ROOM_SERVER_URL}
+        placeholder={DEFAULT_ROOM_SERVER_URL}
+        onSave={async (value) => {
+          const error = phoneRoomUrlError(value);
+          if (error) {
+            showError(new Error(error));
+            return;
+          }
+          await setServerUrl(value.trim().replace(/\/$/, ""));
+        }}
+      />
+      {serverUrl && <TestConnectionButton url={serverUrl} />}
     </SettingItem>
   );
 });

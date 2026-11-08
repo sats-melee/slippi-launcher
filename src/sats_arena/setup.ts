@@ -14,6 +14,7 @@ import {
   ipc_satsArenaGetServerLogs,
   ipc_satsArenaGetServerStatus,
   ipc_satsArenaLaunchLocalGame,
+  ipc_satsArenaLaunchRoomGame,
   ipc_satsArenaServerStatusEvent,
   ipc_satsArenaSetNwcUri,
   ipc_satsArenaSetupSandbox,
@@ -37,6 +38,10 @@ export default function setupSatsArenaIpc({ settingsManager }: { settingsManager
   ipc_satsArenaSetupSandbox.main!.handle(async () => sandbox.topUp());
   ipc_satsArenaLaunchLocalGame.main!.handle(async () => {
     await nativeGame.start();
+    return {};
+  });
+  ipc_satsArenaLaunchRoomGame.main!.handle(async () => {
+    await nativeGame.startRooms();
     return {};
   });
   ipc_satsArenaConfigureLocalGame.main!.handle(async () => {

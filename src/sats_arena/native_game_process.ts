@@ -8,11 +8,11 @@ import { app } from "electron";
 import { access, constants, mkdir, stat } from "fs/promises";
 import path from "path";
 
-import { prepareLocalGameProfile } from "./local_game_profile";
+import { prepareLocalGameProfile, prepareRoomGameProfile } from "./local_game_profile";
 import { localRulesError } from "./local_rules";
 import type { NwcSecretStore } from "./nwc_secret_store";
 import { isValidNwcUri } from "./nwc_secret_store";
-import { phoneRoomUrlError } from "./phone_room";
+import { DEFAULT_ROOM_SERVER_URL, phoneRoomUrlError } from "./phone_room";
 import type { SandboxWallets } from "./sandbox";
 
 type WalletPayload = {
@@ -86,6 +86,8 @@ export async function nativeWalletLaunch(
   delete env.NO_AT_BRIDGE;
   // Never reuse a descriptor or disabled payment-gate flag from another launcher.
   delete env.SATS_ARENA_WALLET_CONFIG_FD;
+  delete env.SATS_ARENA_NETPLAY_ROOMS;
+  delete env.SATS_ARENA_NETPLAY_FILE;
   delete env.SATS_ARENA_FAKE_LOCAL;
   // The saved URI travels only through stdin. A deliberate dev override stays a dev override.
   if (!uriOverride) {
@@ -153,13 +155,17 @@ export class SatsArenaNativeGame {
     return this.launch(false);
   }
 
+  async startRooms(): Promise<void> {
+    return this.launch(false, true);
+  }
+
   async configure(): Promise<void> {
     return this.launch(true);
   }
 
-  private async launch(configurationOnly: boolean): Promise<void> {
+  private async launch(configurationOnly: boolean, rooms = false): Promise<void> {
     if (this.child || this.starting) {
-      throw new Error("Close the local Arena game or its settings window first");
+      throw new Error("Close the Arena game or its settings window first");
     }
     this.starting = true;
     try {
@@ -168,15 +174,27 @@ export class SatsArenaNativeGame {
         throw new Error("Choose an existing Melee ISO in Game settings before playing");
       }
       const binary = await findNativeGameBinary(settings.satsArenaDolphinBinaryPath);
-      const launch = configurationOnly
-        ? null
-        : await nativeWalletLaunch(settings, this.secrets, { ...sanitizeAppImageEnv() }, this.sandbox);
+      const launch =
+        configurationOnly || rooms
+          ? null
+          : await nativeWalletLaunch(settings, this.secrets, { ...sanitizeAppImageEnv() }, this.sandbox);
       const env = launch?.env ?? withoutArenaWalletEnv(sanitizeAppImageEnv());
       delete env.NO_AT_BRIDGE;
-      const userPath = path.join(app.getPath("userData"), "sats-arena", "dolphin-user");
+      if (rooms) {
+        const url = settings.satsArenaPhoneRoomServerUrl?.trim() || DEFAULT_ROOM_SERVER_URL;
+        const error = phoneRoomUrlError(url);
+        if (error) {
+          throw new Error(`Configure the room server in Settings: ${error}`);
+        }
+        env.SATS_ARENA_NETPLAY_ROOMS = "1";
+        env.SATS_ARENA_ROOM_SERVER_URL = url.replace(/\/$/, "");
+        env.SATS_ARENA_FAKE_LOCAL = "0";
+      }
+      const userPath = path.join(app.getPath("userData"), "sats-arena", rooms ? "dolphin-room-user" : "dolphin-user");
       await mkdir(userPath, { recursive: true, mode: 0o700 });
       const configRoot = app.getPath("appData");
-      await prepareLocalGameProfile(userPath, [
+      await (rooms ? prepareRoomGameProfile : prepareLocalGameProfile)(userPath, [
+        ...(rooms ? [path.join(path.dirname(userPath), "dolphin-user")] : []),
         path.join(configRoot, "SatsArenaDolphin"),
         path.join(configRoot, "SlippiOnline"),
       ]);
@@ -196,7 +214,7 @@ export class SatsArenaNativeGame {
       // Never log the child object or its errors: a provider might echo credential material.
       child.on("error", () => undefined);
       await new Promise<void>((resolve, reject) => {
-        child.once("error", () => reject(new Error("Could not launch the local Arena game")));
+        child.once("error", () => reject(new Error("Could not launch the Arena game")));
         child.once("spawn", () => {
           if (!launch) {
             child.stdin?.end();

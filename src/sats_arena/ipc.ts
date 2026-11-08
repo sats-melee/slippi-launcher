@@ -75,3 +75,9 @@ export const ipc_satsArenaConfigureLocalGame = makeEndpoint.main(
   <EmptyPayload>_,
   <EmptyPayload>_,
 );
+
+export const ipc_satsArenaLaunchRoomGame = makeEndpoint.main(
+  "satsArena_launchRoomGame",
+  <EmptyPayload>_,
+  <EmptyPayload>_,
+);

@@ -62,6 +62,12 @@ it("shows prefilled sandbox addresses without reading the live connection", asyn
   expect(mocks.change).toHaveBeenCalledWith("nwc");
 });
 
+it("shows the default room server for a legacy empty setting", async () => {
+  render(<SatsArenaSettings />);
+  expect(await screen.findByDisplayValue("https://melee.landaverde.io")).toBeTruthy();
+  expect(mocks.live).not.toHaveBeenCalled();
+});
+
 it("prepares reusable wallets and displays their addresses", async () => {
   mocks.info.mockResolvedValueOnce({ ready: false, addresses: [] });
   render(<SatsArenaSettings />);

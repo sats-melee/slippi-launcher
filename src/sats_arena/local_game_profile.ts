@@ -22,6 +22,24 @@ export async function prepareLocalGameProfile(
   await ini.save();
 }
 
+/** Room menus use a separate profile and must remain reachable from the title screen. */
+export async function prepareRoomGameProfile(
+  userPath: string,
+  controllerProfiles: readonly string[] = [],
+): Promise<void> {
+  await importMissingControllers(userPath, controllerProfiles);
+  const ini = await IniFile.init(path.join(userPath, "GameSettings", "GALE01.ini"));
+  ini.setLines(
+    "Gecko_Enabled",
+    ini.getLines("Gecko_Enabled").filter((line) => line.trim() !== "$Boot to CSS"),
+  );
+  ini.setLines("Gecko_Disabled", [
+    ...ini.getLines("Gecko_Disabled").filter((line) => line.trim() !== "$Boot to CSS"),
+    "$Boot to CSS",
+  ]);
+  await ini.save();
+}
+
 /** Seed only unconfigured pads; never replace bindings saved in the local profile. */
 async function importMissingControllers(userPath: string, sources: readonly string[]): Promise<void> {
   const pads = await IniFile.init(path.join(userPath, "Config", "GCPadNew.ini"));

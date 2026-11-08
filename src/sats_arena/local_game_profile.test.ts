@@ -4,7 +4,7 @@ import { tmpdir } from "os";
 import path from "path";
 import { afterEach, beforeEach, expect, it } from "vitest";
 
-import { prepareLocalGameProfile } from "./local_game_profile";
+import { prepareLocalGameProfile, prepareRoomGameProfile } from "./local_game_profile";
 
 let folder: string;
 beforeEach(async () => {
@@ -101,4 +101,19 @@ it("preserves configured release controllers and imports missing ports from fall
   await writeFile(path.join(online, "Config/GCPadNew.ini"), "[GCPad2]\nDevice = evdev/0/Changed Later\n");
   await prepareLocalGameProfile(target, [dev, online]);
   expect(await readFile(path.join(target, "Config/GCPadNew.ini"), "utf8")).toBe(first);
+});
+
+it("disables inherited Boot to CSS without copying accounts into the room profile", async () => {
+  const source = await profile("local", "[GCPad1]\nDevice = evdev/0/Pad\n", "[Core]\nSIDevice0 = 6\n");
+  await writeFile(path.join(source, "user.json"), "private account");
+  const target = path.join(folder, "rooms");
+  await prepareLocalGameProfile(target);
+  await prepareRoomGameProfile(target, [source]);
+  const ini = await IniFile.init(path.join(target, "GameSettings/GALE01.ini"));
+  expect(ini.getLines("Gecko_Enabled")).not.toContain("$Boot to CSS");
+  expect(ini.getLines("Gecko_Disabled")).toContain("$Boot to CSS");
+  expect((await IniFile.init(path.join(target, "Config/GCPadNew.ini"))).getSection("GCPad1")?.get("Device", "")).toBe(
+    "evdev/0/Pad",
+  );
+  await expect(readFile(path.join(target, "user.json"))).rejects.toMatchObject({ code: "ENOENT" });
 });

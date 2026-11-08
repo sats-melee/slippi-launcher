@@ -23,10 +23,11 @@ export const Header = () => {
   const meleeIsoPath = useSettings((store) => store.settings.isoPath) || undefined;
   const { showError } = useToasts();
   const [launchingLocal, setLaunchingLocal] = useState(false);
+  const [launchingRooms, setLaunchingRooms] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const localPending = useRef(false);
 
-  const onLocal = async () => {
+  const onPlay = async (rooms: boolean) => {
     if (!meleeIsoPath) {
       showError(Messages.noMeleeIsoFile());
       open("/settings/melee-options");
@@ -36,14 +37,14 @@ export const Header = () => {
       return;
     }
     localPending.current = true;
-    setLaunchingLocal(true);
+    (rooms ? setLaunchingRooms : setLaunchingLocal)(true);
     try {
-      await satsArenaService.launchLocalGame();
+      await (rooms ? satsArenaService.launchRoomGame() : satsArenaService.launchLocalGame());
     } catch (error) {
       showError(error);
     } finally {
       localPending.current = false;
-      setLaunchingLocal(false);
+      (rooms ? setLaunchingRooms : setLaunchingLocal)(false);
     }
   };
 
@@ -92,28 +93,30 @@ export const Header = () => {
               variant="contained"
               disableElevation={true}
               startIcon={<SportsEsportsOutlinedIcon />}
-              disabled={launchingLocal}
-              onClick={onLocal}
-              sx={{ minWidth: 130, height: 44, borderRadius: 1.5, fontWeight: 700 }}
+              disabled={launchingLocal || launchingRooms}
+              onClick={() => onPlay(false)}
+              sx={{
+                minWidth: 130,
+                height: 44,
+                borderRadius: 1.5,
+                fontWeight: 700,
+              }}
             >
               {launchingLocal ? Messages.launchingLocal() : Messages.local()}
             </Button>
-            <Tooltip title={Messages.onlineUnavailable()}>
-              <span>
-                <Button
-                  variant="outlined"
-                  disabled={true}
-                  sx={{
-                    minWidth: 116,
-                    height: 44,
-                    borderRadius: 1.5,
-                    "&.Mui-disabled": { color: "#737680", borderColor: "#33353e", backgroundColor: "#1b1d23" },
-                  }}
-                >
-                  {Messages.online()}
-                </Button>
-              </span>
-            </Tooltip>
+            <Button
+              variant="outlined"
+              disabled={launchingLocal || launchingRooms}
+              onClick={() => onPlay(true)}
+              sx={{
+                minWidth: 116,
+                height: 44,
+                borderRadius: 1.5,
+                fontWeight: 700,
+              }}
+            >
+              {launchingRooms ? Messages.launchingLocal() : Messages.online()}
+            </Button>
           </nav>
         </div>
         <div

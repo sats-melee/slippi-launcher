@@ -9,6 +9,7 @@ import {
   ipc_satsArenaGetServerLogs,
   ipc_satsArenaGetServerStatus,
   ipc_satsArenaLaunchLocalGame,
+  ipc_satsArenaLaunchRoomGame,
   ipc_satsArenaServerStatusEvent,
   ipc_satsArenaSetNwcUri,
   ipc_satsArenaSetupSandbox,
@@ -29,6 +30,9 @@ const satsArenaApi: SatsArenaService = {
   },
   async launchLocalGame() {
     await ipc_satsArenaLaunchLocalGame.renderer!.trigger({});
+  },
+  async launchRoomGame() {
+    await ipc_satsArenaLaunchRoomGame.renderer!.trigger({});
   },
   async configureLocalGame() {
     await ipc_satsArenaConfigureLocalGame.renderer!.trigger({});
