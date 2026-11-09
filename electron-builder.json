@@ -115,7 +115,7 @@
   ],
   "publish": {
     "provider": "github",
-    "owner": "project-slippi",
+    "owner": "sats-melee",
     "repo": "slippi-launcher"
   }
 }
