@@ -6,6 +6,23 @@ import { phoneRoomUrlError } from "./phone_room";
 vi.mock("electron", () => ({ app: {} }));
 
 describe("phone room settings", () => {
+  it("uses the displayed default for legacy empty phone-room settings", async () => {
+    const secrets = { get: vi.fn() };
+    const launch = await nativeWalletLaunch(
+      {
+        satsArenaWalletBackend: "fake",
+        satsArenaEntrySats: 400,
+        satsArenaSatsPerPercent: 1,
+        satsArenaPhoneRoomEnabled: true,
+        satsArenaPhoneRoomServerUrl: "",
+      },
+      secrets,
+      {},
+    );
+    expect(launch.env.SATS_ARENA_ROOM_SERVER_URL).toBe("https://melee.landaverde.io");
+    expect(secrets.get).not.toHaveBeenCalled();
+  });
+
   it("accepts secure server origins and local development, rejecting credentials and remote HTTP", () => {
     for (const url of ["https://arena.example.com", "http://127.0.0.1:8738/", "http://localhost:8738"]) {
       expect(phoneRoomUrlError(url)).toBeNull();

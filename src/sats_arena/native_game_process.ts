@@ -130,7 +130,7 @@ export async function nativeWalletLaunch(
   env.SATS_ARENA_PAYMENTS_PER_SECOND = paymentsPerSecond;
   delete env.SATS_ARENA_ROOM_SERVER_URL;
   if (settings.satsArenaPhoneRoomEnabled) {
-    const url = settings.satsArenaPhoneRoomServerUrl?.trim() ?? "";
+    const url = settings.satsArenaPhoneRoomServerUrl?.trim() || DEFAULT_ROOM_SERVER_URL;
     const error = phoneRoomUrlError(url);
     if (error) {
       throw new Error(error);
