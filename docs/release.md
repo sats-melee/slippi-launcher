@@ -84,3 +84,18 @@ Run the release-selection checks locally with:
 ```sh
 python3 -m unittest discover -s scripts -p 'test_release_artifacts.py'
 ```
+
+## 2.15.4 SteamOS/Linux room-panel hotfix
+
+Native source is pinned in `build.yml`. The Linux package was built locally
+from the release checkout because GitHub rejected workflow dispatch with
+“Actions has been disabled for this repository” even though its Actions
+permissions API returned enabled. This release does not contain newly built
+Windows or macOS packages. Do not substitute older native binaries as if they
+were rebuilt: room admission requires matching native build IDs.
+
+The Linux payload preserves the 2.15.3-arena.1 release's Sys resources, shared
+libraries, wallet checker, and server; only the native game executable is
+replaced with the build of the pinned source. `stage-native.py` hashes and
+wraps that payload using its standalone wrapper before Electron packaging.
+The released AppImage is extracted and its runtime checked before upload.
